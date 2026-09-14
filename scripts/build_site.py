@@ -24,6 +24,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CHANNELS = ROOT / "channels"
 TRANSCRIPTS = ROOT / "transcripts"
+PROMPTS = ROOT / "prompts"
 WEB = ROOT / "web"
 DOCS = ROOT / "docs"
 DATA = DOCS / "data"
@@ -121,6 +122,25 @@ def read_clean(vid: str) -> dict:
     }
 
 
+def prompt_names() -> dict[str, str]:
+    """Map each prompt key (file stem) to its display name from front matter."""
+    names: dict[str, str] = {}
+    if PROMPTS.is_dir():
+        for p in sorted(PROMPTS.glob("*.md")):
+            meta, _ = split_front_matter(p.read_text(encoding="utf-8"))
+            names[p.stem] = meta.get("name") or p.stem
+    return names
+
+
+def clean_meta(vid: str) -> dict:
+    """Lightweight front-matter read (prompt + date) for list rows."""
+    p = TRANSCRIPTS / vid / "clean.md"
+    if not p.exists():
+        return {}
+    meta, _ = split_front_matter(p.read_text(encoding="utf-8"))
+    return {"prompt": meta.get("prompt", ""), "generated": meta.get("generated", "")}
+
+
 # --------------------------------------------------------------------------- #
 # builders
 # --------------------------------------------------------------------------- #
@@ -131,7 +151,7 @@ def write_json(path: Path, obj) -> int:
     return len(text.encode("utf-8"))
 
 
-def build_library(blobs, have, cleaned, metas) -> dict:
+def build_library(blobs, have, cleaned, metas, cmeta, pnames) -> dict:
     owner = owner_index(blobs)
     channels, claimed = [], set()
     for key, blob in blobs:
@@ -158,14 +178,20 @@ def build_library(blobs, have, cleaned, metas) -> dict:
         if vid in claimed or vid in owner:
             continue
         m = metas[vid]
-        loose.append({
+        entry = {
             "id": vid, "title": m.get("title") or vid,
             "channel": m.get("channel") or "",
             "channel_id": m.get("channel_id") or "",
             "words": m.get("words"), "duration": m.get("duration_sec"),
             "clean": vid in cleaned,
             "thumb": f"https://i.ytimg.com/vi/{vid}/mqdefault.jpg",
-        })
+        }
+        if vid in cleaned:
+            pk = cmeta.get(vid, {}).get("prompt", "")
+            entry["clean_prompt"] = pk
+            entry["clean_prompt_name"] = pnames.get(pk, pk)
+            entry["clean_at"] = cmeta.get(vid, {}).get("generated", "")
+        loose.append(entry)
     loose.sort(key=lambda v: -(v["words"] or 0))
 
     return {
@@ -181,7 +207,7 @@ def build_library(blobs, have, cleaned, metas) -> dict:
     }
 
 
-def build_channel(key, blob, have, cleaned, local) -> dict:
+def build_channel(key, blob, have, cleaned, local, cmeta, pnames) -> dict:
     # Same enrichment the /api/channel endpoint did. No failure state on the
     # static site (retrying is a write action), so 'fail' is left blank.
     for v in blob.get("videos", []):
@@ -190,6 +216,11 @@ def build_channel(key, blob, have, cleaned, local) -> dict:
         v["local_words"] = local.get(vid, {}).get("words")
         v["local_lang"] = local.get(vid, {}).get("lang")
         v["clean"] = vid in cleaned
+        if vid in cleaned:
+            pk = cmeta.get(vid, {}).get("prompt", "")
+            v["clean_prompt"] = pk
+            v["clean_prompt_name"] = pnames.get(pk, pk)
+            v["clean_at"] = cmeta.get(vid, {}).get("generated", "")
         v.setdefault("access", "public")
         v["fail"] = ""
     return blob
@@ -263,6 +294,8 @@ def main() -> int:
     metas = {v: read_meta(v) for v in have}
     local = {v: local_info(v) for v in have}
     owner = owner_index(blobs)
+    pnames = prompt_names()
+    cmeta = {v: clean_meta(v) for v in cleaned}
 
     # Rebuild data from scratch so deletions do not leave stale files behind.
     if DATA.exists():
@@ -272,11 +305,11 @@ def main() -> int:
 
     total = 0
     total += write_json(DATA / "library.json",
-                        build_library(blobs, have, cleaned, metas))
+                        build_library(blobs, have, cleaned, metas, cmeta, pnames))
 
     for key, blob in blobs:
         total += write_json(DATA / "ch" / f"{key}.json",
-                           build_channel(key, blob, have, cleaned, local))
+                           build_channel(key, blob, have, cleaned, local, cmeta, pnames))
 
     for vid in sorted(have):
         total += write_json(DATA / "v" / f"{vid}.json", build_video(vid, owner))
