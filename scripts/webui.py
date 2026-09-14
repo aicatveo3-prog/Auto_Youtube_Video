@@ -136,30 +136,40 @@ def git_autopush():
         log("GitHub 원격 저장소가 아직 연결되지 않아 업로드를 건너뜁니다.")
         return
 
-    # Regenerate the static site so the GitHub Pages viewer reflects whatever
-    # was just collected. Failure here must not block the upload of the data.
+    stamp = time.strftime("%Y-%m-%d %H:%M")
+
+    # 1) Commit whatever was just collected (transcripts). docs/ is rebuilt
+    #    later, after syncing, so the site reflects both sides at once.
+    g("add", "-A")
+    local_commit = g("commit", "-m", f"auto: 자막 수집 {stamp}").returncode == 0
+
+    # 2) Pull first. Another AI may have added 정리본 on GitHub, which means the
+    #    remote is ahead; without this the push below would be rejected, and the
+    #    AI's 정리본 would never reach this machine. Rebase keeps history linear.
+    g("fetch", "origin", timeout=180)
+    reb = g("rebase", "origin/main", timeout=180)
+    if reb.returncode != 0:
+        g("rebase", "--abort")
+        log("원격에 다른 변경(예: 다른 AI 정리본)이 있어 자동 병합에 실패했습니다. "
+            "push.bat 실행 또는 수동 동기화가 필요합니다.")
+        return
+
+    # 3) Rebuild the site from the merged source (local captions + pulled 정리본).
     try:
         b = run_py("build_site.py", timeout=600)
-        if b.returncode == 0:
-            tail = (b.stdout or "").strip().splitlines()[-1:]
-            log("사이트 빌드: " + (tail[0] if tail else "완료"))
-        else:
-            log("사이트 빌드 실패(업로드는 계속): "
-                + (b.stderr or "").strip()[-120:])
+        if b.returncode != 0:
+            log("사이트 빌드 실패(업로드는 계속): " + (b.stderr or "").strip()[-120:])
     except Exception as e:                           # noqa: BLE001
         log(f"사이트 빌드 오류: {e}")
 
+    # 4) Commit the rebuilt docs/ (nothing to commit if it was already current).
     g("add", "-A")
-    stamp = time.strftime("%Y-%m-%d %H:%M")
-    commit = g("commit", "-m", f"auto: 자막 수집 {stamp}")
-    if commit.returncode != 0:
-        # The usual reason is "nothing to commit"; anything else is logged as-is.
-        if "nothing to commit" in (commit.stdout + commit.stderr):
-            log("업로드할 새 변경사항이 없습니다.")
-        else:
-            log("커밋 실패: " + (commit.stdout + commit.stderr).strip()[-120:])
-        return
+    docs_commit = g("commit", "-m", f"auto: 사이트 재빌드 {stamp}").returncode == 0
 
+    # 5) Push only if this machine actually moved ahead of the remote.
+    if not local_commit and not docs_commit:
+        log(f"동기화 완료 · 올릴 새 변경사항 없음 ({stamp})")
+        return
     push = g("push", timeout=300)
     if push.returncode == 0:
         log(f"GitHub 업로드 완료 ({stamp})")
@@ -908,6 +918,18 @@ def main():
         if args.open:
             webbrowser.open(url)
         return 0
+
+    # Sync down on launch so 정리본 that another AI added on GitHub are already
+    # here before any collecting starts. Fast-forward only: never touches local
+    # work, and quietly skips if offline or there is nothing to pull.
+    git = shutil.which("git")
+    if git and (ROOT / ".git").is_dir():
+        try:
+            subprocess.run([git, "pull", "--ff-only"], cwd=str(ROOT),
+                           capture_output=True, text=True, timeout=120, shell=False)
+            print("  GitHub 동기화 완료 (다른 AI 정리본 포함 최신 상태)")
+        except Exception:                            # noqa: BLE001
+            print("  GitHub 동기화 건너뜀 (오프라인이거나 병합 필요)")
 
     print("=" * 58)
     print("  유튜브 스크립트 추출기")
