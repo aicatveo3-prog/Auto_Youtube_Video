@@ -351,6 +351,24 @@ async function loadLibrary() {
   d.loose.forEach((v) => ll.append(looseRow(v)));
 }
 
+/*
+ * "정리본" badge that also names the prompt it was built with.
+ * List row shows a short label (정리본 · 지식한입); hovering reveals the full
+ * prompt name and the date it was generated.
+ */
+function shortPromptLabel(name) {
+  if (!name) return '';
+  return name.replace(/\s*정리본\s*$/, '').trim();  // "지식한입 정리본" → "지식한입"
+}
+
+function cleanBadge(v) {
+  const label = shortPromptLabel(v.clean_prompt_name);
+  const b = el('span', 'badge clean', label ? `정리본 · ${label}` : '정리본');
+  const tip = [v.clean_prompt_name, v.clean_at].filter(Boolean).join(' · ');
+  if (tip) b.title = tip;
+  return b;
+}
+
 function looseRow(v) {
   const card = el('div', 'card');
   card.append(el('div', 'pick'));
@@ -364,7 +382,7 @@ function looseRow(v) {
     `${v.channel || '채널 미확인'} · ${commas(v.words)}단어 · ${fmtDur(v.duration)}`));
   const right = el('div', 'right');
   right.append(el('span', 'badge local', '추출됨'));
-  if (v.clean) right.append(el('span', 'badge clean', '정리본'));
+  if (v.clean) right.append(cleanBadge(v));
   const acts = el('div', 'acts');
   acts.append(actionBtn('read', '읽기', `#/video/${v.id}`));
   acts.append(actionBtn('yt', '유튜브',
@@ -579,7 +597,7 @@ function videoRow(v) {
     right.append(el('span', 'badge local',
       v.local_words ? `${commas(v.local_words)}단어` : '추출됨'));
   }
-  if (v.clean) right.append(el('span', 'badge clean', '정리본'));
+  if (v.clean) right.append(cleanBadge(v));
 
   if (locked) {
     const b = el('span', 'badge members', '멤버십 전용');
