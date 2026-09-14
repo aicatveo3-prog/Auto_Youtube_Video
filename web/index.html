@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>유튜브 스크립트 라이브러리</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<header class="nav">
+  <a class="brand" href="#/">스크립트 라이브러리</a>
+  <nav>
+    <a href="#/" data-nav="library">라이브러리</a>
+    <a href="#/add" data-nav="add">채널 추가</a>
+  </nav>
+  <form class="navsearch" id="gsearch">
+    <label class="sr-only" for="gq">전체 스크립트 검색</label>
+    <input id="gq" type="search" placeholder="모든 스크립트 검색" autocomplete="off">
+    <button type="submit" class="ghost">검색</button>
+  </form>
+</header>
+
+<main>
+
+<!-- ══ 라이브러리 ══════════════════════════════════════════ -->
+<section id="v-library" class="view">
+  <div class="stats" id="totals"></div>
+
+  <h2 class="vh">채널</h2>
+  <div id="chan-grid" class="grid"></div>
+  <p id="chan-none" class="muted center pad" hidden>
+    아직 불러온 채널이 없습니다. <a href="#/add">채널 추가</a>에서 시작하세요.
+  </p>
+
+  <section id="loose-wrap" hidden>
+    <h2 class="vh">채널 미등록 <span class="muted" id="loose-n"></span></h2>
+    <p class="muted tight">채널 목록 없이 개별로 추출된 영상입니다. 해당 채널을 불러오면 자동으로 합쳐집니다.</p>
+    <div id="loose-list" class="list"></div>
+  </section>
+</section>
+
+<!-- ══ 채널 추가 ══════════════════════════════════════════ -->
+<section id="v-add" class="view" hidden>
+  <h2 class="vh">채널 추가</h2>
+  <div class="panel">
+    <div class="row">
+      <label class="grow">
+        <span>채널</span>
+        <input id="target" type="text" placeholder="@channelname 또는 채널 URL"
+               autocomplete="off" spellcheck="false">
+      </label>
+      <label class="narrow">
+        <span>개수 제한</span>
+        <input id="limit" type="number" min="1" step="1" placeholder="전체">
+      </label>
+      <label class="narrow">
+        <span>제목 언어</span>
+        <select id="meta-lang">
+          <option value="ko">한국어 우선</option>
+          <option value="en">영어 우선</option>
+          <option value="">유튜브 기본</option>
+        </select>
+      </label>
+    </div>
+    <div class="row wrap">
+      <fieldset class="tabs">
+        <legend>탭</legend>
+        <label><input type="checkbox" class="tab" value="videos" checked> 일반 영상</label>
+        <label><input type="checkbox" class="tab" value="shorts" checked> 쇼츠</label>
+        <label><input type="checkbox" class="tab" value="streams"> 라이브</label>
+      </fieldset>
+      <label class="inline"><input id="refresh" type="checkbox"> 새로 가져오기</label>
+      <button id="btn-load" class="primary">목록 가져오기</button>
+    </div>
+    <p class="muted tight">새로 가져오기는 기존 목록을 지우지 않고 합칩니다. 이미 추출한 영상은 항상 유지됩니다.</p>
+    <div id="load-prog" hidden>
+      <div class="progress"><div id="load-bar" class="bar"></div></div>
+      <p id="load-text" class="muted" aria-live="polite"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 채널 상세 ══════════════════════════════════════════ -->
+<section id="v-channel" class="view" hidden>
+  <a class="back" href="#/">← 라이브러리</a>
+  <div class="chead">
+    <div id="cd-face"></div>
+    <div>
+      <h2 class="vh" id="cd-name"></h2>
+      <p class="muted" id="cd-info"></p>
+    </div>
+  </div>
+
+  <div class="tabbar" role="tablist">
+    <button role="tab" class="tabbtn on" data-ct="all">전체 <span></span></button>
+    <button role="tab" class="tabbtn" data-ct="done">추출됨 <span></span></button>
+    <button role="tab" class="tabbtn" data-ct="todo">미추출 <span></span></button>
+    <button role="tab" class="tabbtn" data-ct="members">멤버십 <span></span></button>
+    <button role="tab" class="tabbtn" data-ct="clean">정리본 <span></span></button>
+  </div>
+
+  <div class="toolbar">
+    <label class="grow">
+      <span class="sr-only">제목 검색</span>
+      <input id="q" type="search" placeholder="이 채널에서 제목 검색" autocomplete="off">
+    </label>
+    <label><span class="sr-only">정렬</span>
+      <select id="sort">
+        <option value="default">최신순</option>
+        <option value="oldest">오래된순</option>
+        <option value="views">조회수순</option>
+        <option value="longest">긴 영상순</option>
+        <option value="shortest">짧은 영상순</option>
+        <option value="title">제목순</option>
+      </select>
+    </label>
+    <label><span class="sr-only">종류</span>
+      <select id="ftab">
+        <option value="all">전체 종류</option>
+        <option value="videos" selected>일반 영상만</option>
+        <option value="shorts">쇼츠만</option>
+        <option value="streams">라이브만</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="toolbar" id="pickbar">
+    <button id="sel-all" class="ghost">보이는 것 전체 선택</button>
+    <button id="sel-none" class="ghost">선택 해제</button>
+    <span class="spacer"></span>
+    <output id="count" class="count" aria-live="polite"></output>
+  </div>
+
+  <div class="panel tight-panel" id="runbar">
+    <div class="row wrap nomargin">
+      <label class="narrow">
+        <span>자막 언어</span>
+        <select id="lang">
+          <option value="auto">자동 (영상 언어)</option>
+          <option value="ko">한국어 우선</option>
+          <option value="en">영어 우선</option>
+        </select>
+      </label>
+      <button id="btn-run" class="primary">선택한 영상 추출</button>
+      <button id="btn-cancel" class="danger" hidden>중단</button>
+    </div>
+    <div id="run-prog" hidden>
+      <div class="progress"><div id="run-bar" class="bar"></div></div>
+      <p id="run-text" class="muted" aria-live="polite"></p>
+    </div>
+    <details id="log-box" hidden>
+      <summary>실행 로그</summary>
+      <pre id="log"></pre>
+    </details>
+  </div>
+
+  <div id="list" class="list"></div>
+  <p id="empty" class="muted center pad" hidden>조건에 맞는 영상이 없습니다.</p>
+</section>
+
+<!-- ══ 스크립트 리더 ══════════════════════════════════════ -->
+<section id="v-video" class="view" hidden>
+  <a class="back" id="rd-back" href="#/">← 라이브러리</a>
+  <h2 class="vh" id="rd-title"></h2>
+  <p class="muted tight" id="rd-meta"></p>
+
+  <div class="toolbar">
+    <label class="grow">
+      <span class="sr-only">본문 검색</span>
+      <input id="rd-find" type="search" placeholder="이 스크립트 안에서 찾기" autocomplete="off">
+    </label>
+    <output id="rd-hits" class="count" aria-live="polite"></output>
+    <span class="spacer"></span>
+    <label class="inline" id="rd-orig-wrap">
+      <input id="rd-orig" type="checkbox"> 원본 함께 보기
+    </label>
+    <a id="rd-yt" class="ghost btn" target="_blank" rel="noopener noreferrer">유튜브에서 보기</a>
+  </div>
+
+  <div class="split" id="rd-split-wrap" data-mode="clean">
+    <!-- 원본 -->
+    <div class="pane" id="rd-orig-pane">
+      <div class="panehead">
+        <h3>원본 스크립트</h3>
+        <button id="rd-copy" class="ghost">복사</button>
+      </div>
+      <article id="rd-body" class="reader"></article>
+    </div>
+
+    <!-- 정리본 -->
+    <div class="pane" id="rd-clean-pane">
+      <div class="panehead">
+        <h3>정리본</h3>
+        <span class="muted small" id="cl-meta"></span>
+        <span class="spacer"></span>
+        <button id="cl-copy" class="ghost" hidden>복사</button>
+        <button id="cl-drop" class="ghost" hidden>삭제</button>
+      </div>
+
+      <!-- 없을 때 -->
+      <div id="cl-empty" class="reader empty-pane">
+        <p class="muted">아직 정리본이 없습니다.</p>
+        <p class="muted small">
+          Kiro 채팅에 <strong id="cl-ask"></strong> 라고 요청하면 만들어집니다.
+          만들어진 뒤 이 화면을 새로고침하세요.
+        </p>
+        <div class="toolbar">
+          <label class="narrow">
+            <span class="sr-only">프롬프트</span>
+            <select id="cl-prompt"></select>
+          </label>
+          <button id="cl-copyprompt" class="ghost">프롬프트+본문 복사</button>
+          <button id="cl-paste" class="ghost">결과 붙여넣기</button>
+        </div>
+        <div id="cl-pastebox" hidden>
+          <label>
+            <span>정리본 내용을 붙여넣고 저장</span>
+            <textarea id="cl-text" rows="10" placeholder="여기에 붙여넣기"></textarea>
+          </label>
+          <div class="toolbar">
+            <button id="cl-save" class="primary">저장</button>
+            <button id="cl-cancel" class="ghost">취소</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 있을 때 -->
+      <article id="cl-body" class="reader markdown" hidden></article>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 검색 결과 ══════════════════════════════════════════ -->
+<section id="v-search" class="view" hidden>
+  <a class="back" href="#/">← 라이브러리</a>
+  <h2 class="vh" id="sr-head">검색</h2>
+  <p class="muted tight" id="sr-info"></p>
+  <div id="sr-list" class="list"></div>
+  <p id="sr-none" class="muted center pad" hidden></p>
+</section>
+
+</main>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<script src="/app.js"></script>
+</body>
+</html>

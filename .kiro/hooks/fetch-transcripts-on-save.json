@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Fetch YouTube transcripts on urls.txt save",
+      "trigger": "PostFileSave",
+      "description": "urls.txt를 저장하면 그 안의 모든 유튜브 URL 스크립트를 로컬로 내려받습니다. Shell Command 액션이라 LLM을 호출하지 않고 크레딧을 소모하지 않습니다.",
+      "matcher": "urls\\.txt$",
+      "action": {
+        "type": "command",
+        "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"scripts/fetch_queue.ps1\"",
+        "timeout": 900
+      }
+    }
+  ]
+}

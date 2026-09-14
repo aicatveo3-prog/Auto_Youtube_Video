@@ -1,0 +1,336 @@
+1640	1.64	>> (Phillip Roberts) hello, come in and sit down.
+4520	4.52	So for the last session before the afternoon break, we have Phillip Roberts who works at
+10300	10.30	Andea and is here from London ‑‑ Scotland.
+12820	12.82	Edinbrough.
+13820	13.82	‑‑ wow, ten second memory, he's going to talk about the vent loop.
+17510	17.51	If everyone could give Phillip a big brownedder round of applause.
+18599	18.60	>> Phillip Roberts: Okay hello everyone, thanks for coming to the side track, it's awesome
+20939	20.94	to see it packed out in here.
+22630	22.63	Can everyone give me a stretch.
+24820	24.82	I needed to stretch, so I look less weird.
+31810	31.81	I want to talk about the event loop and what the heck is the event loop, as in the event
+37219	37.22	loop inside JavaScript.
+39620	39.62	So first up, as he said I work for AndYet which is an awesome little Dev shop in the
+46899	46.90	US, look us up if you need help with real‑time stuff.
+50750	50.75	That's what we're good at.
+52260	52.26	So, about 18 months ago--I'm a paid professional JavaScript developer--I thought to myself
+60000	60.00	how does, like JavaScript actually work?
+63980	63.98	And I wasn't entirely sure.
+65850	65.85	I'd heard V8 as a term, chrome's Runtime didn't really know what that meant, what that did.
+72720	72.72	I'd heard things like single threaded, you know obviously I'm using callbacks.
+76270	76.27	How do callbacks work?
+77970	77.97	I started a journey of like reading and research and experimenting in the browser which basically
+85250	85.25	started like this.
+86250	86.25	‑‑ I was kind of like JavaScript what are you.
+90540	90.54	I'm a single threaded single concurrent language ‑‑ right.
+95680	95.68	yeah, cool, I have a call stack, an event loop, a callback queue, and some other APIs
+101060	101.06	and stuff.
+102619	102.62	‑‑ rite.
+103619	103.62	I did not do a computer science degree.
+105259	105.26	I mean, these words, they're words, so I heard about V8 and the various Runtimes and different
+111420	111.42	browsers so I looked to V8 do you have a call stack, an event loop, a callback queue, and
+115870	115.87	some other APIs and stuff, I have a call stack and a heap, I don't know what those other
+120299	120.30	things are, okay, interesting so basically 18 months passed.
+129679	129.68	And I think I get this.
+132550	132.55	(Laughing) and so, this is what I want to share with you today.
+135970	135.97	Hopefully this will be useful if you're relatively new to JavaScript, help you understand why
+141510	141.51	JavaScript is so weird when you compare it to other languages you might used why callbacks
+146060	146.06	are a thing, cause us hell but are required.
+149290	149.29	And if you're an experienced JavaScript developer hopefully give you some fresh insights how
+155540	155.54	the Runtime you're using works so you can think about it a little better.
+160890	160.89	So if we look at the JavaScript Runtime itself like V8 which is the Runtime inside Chrome.
+171380	171.38	This is a simplified view of what JavaScript Runtime is.
+175129	175.13	The heap, where memory allocation happens, and then there's the call stack, which is
+181849	181.85	where your stack frames are and all that kind of stuff, but, if you, like, clone the V8
+189930	189.93	code base and grep for things like setTimeout or DOM or HTTP request, they're not in there,
+197720	197.72	they don't exist in V8, which was a surprise to me.
+201380	201.38	It's first thing you use when you start thinking about async stuff and it's not in the V8 source.
+207930	207.93	Hmm ... interesting.
+209390	209.39	So, over this 18 months of discovery I come to realize this is really, this is really
+215860	215.86	the bigger picture, this is what I'm hoping to get you on board with today and understand
+220049	220.05	what these pieces are, we have the V8 Runtime but then we have these things called web APIs
+225099	225.10	which are extra things that the browser provides.
+227910	227.91	DOM, AJAX, time out, things like that, we have this mythical event loop and the callback
+234860	234.86	queue.
+235860	235.86	I'm sure you've heard some of these terms before, but maybe you don't quite understand
+239430	239.43	how these pieces pull together.
+241870	241.87	So, I'm going to start from the beginning, some of this will be new, to words might be
+246629	246.63	new to people, other people will get this.
+248890	248.89	We're going to quickly move on from here, bear with me if this is obvious, I think for
+253940	253.94	a lot of people it's not.
+256180	256.18	So, JavaScript is a single threaded programming language, single threaded Runtime, it has
+261290	261.29	a single call stack.
+263390	263.39	And it can do one thing at a time, that's what a single thread means, the program can
+268570	268.57	run one piece of code at a time.
+270920	270.92	So, let's try and visualize that just to get our heads around what that mean, so if I have
+275390	275.39	some code like this on your left, we've got a few functions, a function multiplier which
+280850	280.85	multiplies two numbers, square which calls multiply with the same number twice, a function
+286570	286.57	which prints the square of a number of calling square and then calling console.log and then
+291700	291.70	at the bottom of our file we actually run print square, this code all good?
+295860	295.86	Make sense?
+296860	296.86	Cool.
+297860	297.86	So, if we run this, well, I should back up a step, so the call stack is basically ‑‑
+304440	304.44	it's a data structure which records basically where in the program we are, if we step into
+308660	308.66	a function, we put something on to the stack, if we return from a function, we pop off the
+312800	312.80	top of the stack that's all the stack can do, ‑‑ so if you run this file, there's
+318621	318.62	kind of a main function, right, like the file itself, so, we push that on to the stack.
+323470	323.47	Then we have some function definitions, they're just like defining the state of the world,
+328450	328.45	and finally we got to print square, right, so print square is a function call, so we
+332770	332.77	push that on to the stack, and immediately inside print square, push on to the stack,
+337710	337.71	which calls multiply, now we have a return statement, we multiply A and B and we return,
+343940	343.94	when we return we pop something off the stack, so, pop, multiplier of the stack, returning
+348990	348.99	to square, return to print square, console.log, there's no return, it's implicit, because
+357040	357.04	we got to the end of the function, and we're done so that's like a visualization of the
+361680	361.68	call stalk, does that make sense?
+365090	365.09	(Yes, Phil) even if you haven't thought about the call stack before, you've come across
+371830	371.83	it when you've been doing browser‑side development, so if we have code like this, a function baz
+378050	378.05	which calls bar, which calls Foo, which throws an error if we run it in Chrome we see this.
+386990	386.99	And it prints the stack trace, right, the state of the stack when that error happened,
+392050	392.05	so, uncaught error oops Foo, bar, Baz, anonymous function, which is our main.
+400400	400.40	Equally, if you've heard the term like blowing the stack, this is an example of that.
+406300	406.30	Have a function foo which calls Foo , so what's going to happen ? We have a function main
+412830	412.83	which calls foo which calls foo, which calls foo, which calls foo, and ultimately chrome
+420870	420.87	says, you probably didn't mean to call foo 16,000 times recursively, I'll just kill things
+427460	427.46	for you and you can figure out where your bug lies, right.
+430710	430.71	So although I may be representing a new side of the call stack you have some sense of it
+436580	436.58	in your development practice already.
+438740	438.74	So, the big question then comes is like what happens when things are slow?
+444440	444.44	So, we talk about blocking and blocking behavior and blocking, there's no strict definition
+451220	451.22	of what is and didn't blocking, really it's just code that's slow.
+455830	455.83	So console.log isn't slow, doing a while loop from one to ten billion is slow, network requests
+461230	461.23	are slow.
+462230	462.23	Image requests are slow.
+466330	466.33	Things which are slow and on that stack are what are blocking means.
+472010	472.01	So heres a little example, so let's say we have, this is like a fake bit of code, getSynchronous,
+479120	479.12	right, like jQuery is like, AJAX request.
+483850	483.85	What would happen if those were synchronous requests, forget what we know about async
+487340	487.34	callbacks they're synchronous.
+490160	490.16	If we go through it like we have, we call getSync and then we wait, because then we're
+496190	496.19	doing network request, network is relative to computers, are slow, hopefully that network
+501940	501.94	requests completes, we can move on, wait, move on.
+507810	507.81	Wait, and, I mean, this network request might never finish, so ... yeah, I guess I'll go
+517080	517.08	home.
+518080	518.08	Finally those three, you know blocking behaviors complete and we can clear the stack, right.
+523030	523.03	So in a programming language is single threaded you're not using threads like say Ruby, that's
+529901	529.90	what happens, right, we make a network request, we have to just wait till it's done, because
+534320	534.32	we have no way of handling that.
+536900	536.90	Why is this actually a problem?
+540210	540.21	The problem is because we're running code in browsers.
+544360	544.36	So, let's you ‑‑ here we go, okay.
+550709	550.71	So this is just, this is Chrome, this is the code I just ran.
+555940	555.94	Browsers don't give us ‑‑ well they do give us synchronous AJAX request, I'm faking
+560720	560.72	this out with a big while loop, because it's synchronous, I basically while loop for five
+566120	566.12	seconds before continuing, so if I open up the console here.
+573960	573.96	We can see what happens, so with request foo.com, why this is happening, I can't do anything,
+580600	580.60	right, even the run button hasn't finished rerendering the fact that I clicked it.
+584760	584.76	The browser is blocked, it's stuck, it can't do anything until those requests complete.
+591490	591.49	And then all hell breaks loose because I did some stuff,it figured that out I'd done it,
+595681	595.68	it couldn't actually render it.
+598800	598.80	Couldn't do anything.
+600520	600.52	That's because if that call stack has things on it, and here it's got these yeah, it's
+607010	607.01	still going.
+608420	608.42	We've got the synchronous request, the browser can't do anything else.
+612260	612.26	It can't render, it can't run any other code, it's stuck.
+616800	616.80	Not ideal, right if we want people to have nice fluid UIs, we can't block the stack.
+622110	622.11	So, how do we handle this?
+624650	624.65	Well the simplest solution we're provided with is asynchronous callbacks, there's almost
+629280	629.28	no blocking functions in the browser, equally in node, they're all made asynchronous, which
+636570	636.57	basically means we run some code, give it a callback, and run that later, if you've
+642180	642.18	seen JavaScript you've seen asynchronous callbacks, what does this actually look like.
+647430	647.43	Simple example to remind people where we're at.
+651130	651.13	Code like this, console.log hi.
+653530	653.53	Write, we run the setTimeout, but that queue's the console log for future so we skip on to
+660390	660.39	JSConf and then five seconds later we log "there" right, make sense?
+666540	666.54	Happy.
+667540	667.54	Basically that's setTimeout is doing something.
+669670	669.67	So, asynchronous callbacks with regards to the stacks we saw before ... how does this
+675040	675.04	work?
+676760	676.76	Let's run the code.
+678480	678.48	Console.log hi.
+681180	681.18	setTimeout.
+682540	682.54	We know it doesn't run immediately, we know it's going to run in five seconds time, we
+688370	688.37	can't push it on to the stack, somehow it just disappears, we don't have like a way
+694070	694.07	of describing this yet, but we'll come to it.
+697240	697.24	We log JSConfEU, clear, five seconds later somehow magically "there" appears on the stack.
+704810	704.81	How does that happen?
+708960	708.96	And that's ‑‑ this is basically where the event loop comes in on concurrency.
+713710	713.71	Right, so I've been kind of partially lying do you and telling you that JavaScript can
+718760	718.76	only do one thing at one time.
+720050	720.05	That's true the JavaScript Runtime can only do one thing at one time.
+723660	723.66	It can't make an AJAX request while you're doing other code.
+726120	726.12	It can't do a setTimeout while you're doing another code.
+729380	729.38	The reason we can do things concurrently is that the browser is more than just the Runtime.
+735000	735.00	So, remember this diagram, the JavaScript Runtime can do one thing at a time, but the
+739420	739.42	browser gives us these other things, gives us these we shall APIs, these are effectively
+743840	743.84	threads, you can just make calls to, and those pieces of the browser are aware of this concurrency
+751110	751.11	kicks in.
+753060	753.06	If you're back end person this diagram looks basically identical for node, instead of web
+758150	758.15	APIs we have C++ APIs and the threading is being hidden from you by C++.
+768680	768.68	Now we have this picture let's see how this code runs in a more full picture of what a
+773520	773.52	browser looks like.
+774630	774.63	So, same as before, run code, console log hi, logs hi to the console, simple.
+781930	781.93	now we can see what happens when we call setTimeout.
+785029	785.03	We are ‑‑ we pass this callback function and a delay to the setTimeout call.
+791680	791.68	Now setTimeout is an API provided to us by the browser, it doesn't live in the V8 source,
+797210	797.21	it's extra stuff we get in that we're running the JavaScript run
+802630	802.63	time in.
+805180	805.18	The browser kicks off a timer for you.
+807660	807.66	And now it's going to handle the count down for you, right, so that means our setTimeout
+813150	813.15	call, itself is now complete, so we can pop off the stack.
+817100	817.10	“JSConfEU”, clear, so, now we've got this timer in the web API, which five seconds later
+825460	825.46	is going to complete.
+826920	826.92	Now the web API can't just start modifying your code, it can't chuck stuff onto the stack
+832930	832.93	when it's ready if it did it would appear randomly in the middle of your code so this
+838339	838.34	is where the task queue or callback queue kicks in.
+840550	840.55	Any of the web APIs pushes the callback on to the task queue when it's done.
+847880	847.88	Finally we get to the event loop, title of the talk, what the heck is the event loop
+852930	852.93	is like the simplest little piece in this whole equation, and it has one very simple
+858530	858.53	job.
+859530	859.53	The event loops job is to look at the stack and look at the task queue.
+862710	862.71	If the stack is empty it takes the first thing on the queue and pushes it on to the stack
+866839	866.84	which effectively run it.
+869250	869.25	So here we can see that now the stack is clear, there's a callback on the task queue, the
+874440	874.44	event loop runs, it says, oh, I get to do something, pushes the callback on to the stack.
+879810	879.81	Remember it's the stack is like JavaScript land, back inside V8, the callback appears
+885180	885.18	on the stack, run, console.log “there”, and we're done.
+889780	889.78	Does that make sense?
+892150	892.15	Everyone where me?
+893930	893.93	Awesome!
+894930	894.93	Okay.
+895930	895.93	So, now we can see how this works with probably one of the first encounters you would have
+900442	900.44	had with Async stuff which for some weird reason someone says says you have to call
+904900	904.90	setTimeout zero, ‑‑ okay, you want me to run the function in zero time?
+911440	911.44	Why would I wrap it in a setTimeout?
+912930	912.93	Like the first time you run across this, if you're like me,i see it doing something, but
+917350	917.35	I don't know why.
+920300	920.30	The reason is, generally, if you're trying to defer something until the stack is clear.
+925970	925.97	So we know looking at this, if you've written JavaScript, that we're going to see the same
+929140	929.14	result, we're going to see “hi” “JSConf”, and “there” is going to appear at the
+933650	933.65	end.
+935480	935.48	We can see how that happens.
+938430	938.43	The setTimeout zero, now it's going to complete immediately and push it on to the queue, remember
+944250	944.25	what I said about the event loop, it has to wait till the stack is clear before it can
+947680	947.68	push the callback on to the stack, so your stack is going to continue to run, console.log
+953100	953.10	“hi”, “JSConfEU” and clear, now the event loop can kick in and call your callback.
+960720	960.72	That's like an example of setTimeout zero, is deferring that execution of code, for whatever
+967240	967.24	reason to the end of the stack.
+971040	971.04	Or until stack is clear.
+973150	973.15	Okay.
+974730	974.73	So, all these web APIs work the same way, if we have AJAX request, we make an AJAX request
+981480	981.48	to the URL with a callback, works the same way, oops sorry, console log, “hi”, make
+988481	988.48	an AJAX request, the code for running that AJAX request does not live in JavaScript Runtime
+992649	992.65	but in the browser as a web API, so we spin it up with a callback in the URL, your code
+1000120	1000.12	can continue to run.
+1002170	1002.17	Until that XHR request completes, or it may never complete, it's okay, the stack can continue
+1007460	1007.46	to run, assuming it completes, gets pushed to the queue,picked up by the event loop and
+1012960	1012.96	it's run.
+1015970	1015.97	That's all that happens when an Async call happens.
+1018360	1018.36	Let's do a crazy complicated example, I hope this going to work, if you haven't realized
+1025600	1025.60	all this is in keynote there's like I don't know 500 animation steps in this whole deck.
+1032450	1032.45	(code blows up, flames animation) (Applause) J Whew ... no ... so ... interesting, we're
+1055180	1055.18	given a link.
+1058600	1058.60	Hmm ... is this big enough, can people see?
+1062140	1062.14	Okay, so basically I wrote this talk for Scotland JS, after the talk I broke half of the slides
+1072220	1072.22	and could not be bothered to redo all the slides because it was a total pain in the
+1076360	1076.36	ass in keynote to do it so I took much easier route (Laughing) of writing a tool that can
+1085011	1085.01	visualize the JavaScript Runtime at Runtime, and it's called loop.
+1091490	1091.49	So, let's just run this example and, which was kind of the example that we had on the
+1096580	1096.58	previous slide, I haven't shimmed XHR yet, it's doable I just haven't done it.
+1103430	1103.43	As you can see the code, we're going to log something, this is a shim around addEventListener,
+1110960	1110.96	setTimeout and we're going to do a console.log. ‑‑
+1113560	1113.56	I'm going to run it and see what happens so ... add a DOM API, add a timeout, code is
+1120179	1120.18	going to continue to run, pushes the callback into the queue which runs, and we're done.
+1129290	1129.29	If I click on here then it's going to ... trigger the web API, queue the callback for the click
+1134970	1134.97	and run it.
+1136190	1136.19	if I cluck a hundred times we can see what happens.
+1139320	1139.32	I clicked, the click doesn't get processed immediately, itself gets pushed to the queue,
+1145350	1145.35	as the queue gets processed, eventually my click is going to get dealt with, right.
+1152300	1152.30	So I have a few more examples I'm going to run through here.
+1154961	1154.96	Here we go, okay, so, I'm just going to run through a few examples just to kind of talk
+1169280	1169.28	about a few things that you might have run in to and not thought about with Async APIs,
+1173970	1173.97	In this example we call setTimeout four times with the one second delay, and console.log
+1180410	1180.41	“hi”.
+1183470	1183.47	By the time the callbacks get queued... that fourth callback we asked for a one second
+1192030	1192.03	delay, and it's still waiting, the callback hasn't run, right .
+1196900	1196.90	this illustrates the ‑‑ like what time out is actually doing, it's not a guaranteed
+1202470	1202.47	time to execution, it's a minimum time to execution, just like setTimeout zero doesn't
+1206880	1206.88	run the code immediately it runs the code next‑ish, sometime, right?
+1216350	1216.35	So ... in this example I want to talk about callbacks, so, depending on who, speak to
+1224770	1224.77	and how they phrase things, callbacks can be one of two things, callbacks can be any
+1229180	1229.18	function that another function calls or callbacks can be more explicitly an asynchronous callback
+1234760	1234.76	as in one that will get pushed back on the callback queue in the future.
+1239140	1239.14	This bit of code illustrates the difference, right.
+1242580	1242.58	The forEach method on an array, it doesn't run, it takes a function, which you could
+1248390	1248.39	call a callback, but it's not running it asynchronously, it's running it within the current stack.
+1255640	1255.64	We could define an asynchronous forEach so it can take an array, a callback and for each
+1262170	1262.17	item in the array it's going to do a setTimeout zero with that callback, I guess this should
+1268250	1268.25	pass in the value, but any way, so, I'm going to run it and we can see what the difference
+1273770	1273.77	is, so for the first block of code that runs, it's going to sit and block the stack, right?
+1280500	1280.50	Until it's complete, whereas in the Async version, okay, it's slowed down, but we're
+1286080	1286.08	basically going to queue a bunch of callbacks and they're going to clear and then we can
+1291560	1291.56	actually run through and do a console.log.
+1294660	1294.66	In this example the console.log is fast, so the benefit of doing it asynchronously is
+1299330	1299.33	not obviously but let's say you're doing some slow processing on each element in the array.
+1308900	1308.90	I think I have that shown somewhere no, no, I don't.
+1315260	1315.26	Okay.
+1316260	1316.26	So let's say ‑‑ Ooops.
+1320240	1320.24	So I have a delay function which is just slow, it's just a slow thing.
+1326620	1326.62	So ... let's say processing Async and here processing Sync.
+1335240	1335.24	Okay, now, I'm going to turn on a thing I've literally hacked together this morning, which
+1343500	1343.50	is to simulate the repaint or the render in the browser, something I haven't touched on
+1347780	1347.78	is how all of this interacts with rendering ‑‑ I've kind of touched on it but not really
+1354760	1354.76	explained it.
+1356430	1356.43	So, basically the browser is kind of constrained by what you're doing javaScript, the browser
+1362330	1362.33	would like to repaint the screen every 16.6 milliseconds, 60 frame a second is ideal,
+1368240	1368.24	that's the fastest it will do repaints if it can.
+1372880	1372.88	But it's constrained by what you're doing in JavaScript for various reasons, so it can't
+1377870	1377.87	actually do a render if there is code on the stack, right.
+1382080	1382.08	Like the render kind of call is almost like a callback in itself.
+1385230	1385.23	It has to wait till the stack is clear.
+1387310	1387.31	The difference is that the render is given a higher priority than your callback, every
+1393860	1393.86	16 milliseconds it's going to queue a rend, wait till the stack is clear before it can
+1401480	1401.48	actually do that render.
+1403320	1403.32	So this is ‑‑ this render queue is just simulating a render, every second it's can
+1407720	1407.72	I do a render?
+1408720	1408.72	Yes, can I do a render?
+1409940	1409.94	Yes.
+1410940	1410.94	Where, because our code isn't doing anything now.
+1413130	1413.13	If I run the code, you can see while we're doing this slow synchronous loop through the
+1419910	1419.91	array, our render is blocked, right, if our render is blocked you can't select text on
+1424280	1424.28	the screen, you can't click things and see the response, right, like the example I showed
+1430419	1430.42	earlier.
+1431480	1431.48	In this example, okay, it's blocked while we queue up the async time out, that relatively
+1437250	1437.25	quick but we're given ‑‑ we're kind of giving the render a chance between each element
+1444309	1444.31	because we've queued it up asynchronously to jump in there and do the render, does that
+1452591	1452.59	make sense?
+1453591	1453.59	>> Yeah >> Yeah, cool.
+1454760	1454.76	So, that's just kind of ‑‑ this is just like a simulation of how the rendering works,
+1459679	1459.68	but it just really shows you when people say don't block the event loop, this is exactly
+1463600	1463.60	what they're talking about.
+1464600	1464.60	They're saying don't put shitty slow code on the stack because when you do that the
+1467840	1467.84	browser can't do what it needs to do, create a nice fluid UI.
+1473500	1473.50	This is why when you're doing things like image processing or Animating too many things
+1478220	1478.22	gets sluggish if you're not careful about how you queue up that code.
+1484080	1484.08	So an example of that, we can see with the scroll handlers ‑‑ so scroll handle ‑‑
+1493059	1493.06	like scroll events in the DOM trigger a lot, right, they trigger like ‑‑ I presume
+1498600	1498.60	they trigger on every frame like every 16 milliseconds, if I have code like this this
+1504950	1504.95	right.
+1505950	1505.95	On document.scroll, animate something, or do some work.
+1511050	1511.05	If I have this code, like as I scroll it's going to queue up like a ton of callbacks
+1516960	1516.96	right.
+1518090	1518.09	And then it has to go through and process all of those and each of the processing of
+1521790	1521.79	those is slow, then, okay, you're not blocking the stack, you're flooding the queue with
+1527470	1527.47	queued events.
+1529210	1529.21	So, this is like just helping visualize, I guess, what happens when you actually trigger
+1535620	1535.62	all these callbacks, there's way you can debounce that to basically say okay, we're going to
+1542290	1542.29	queue up all those events, but let's do the slow work every few seconds or until the user
+1548419	1548.42	stops scrolling for some amount of time I think that's basically it.
+1558059	1558.06	There's a whole other talk in how the hell this works.
+1563690	1563.69	Because basically in running the code, like this code runs at Runtime, right, and it's
+1569540	1569.54	slowed down by I run it through a Esprima a JavaScript parser, I insert a big while
+1577440	1577.44	loop, that takes half a second, it just slow motions the code.
+1583840	1583.84	Ship it to web worker and do a whole bunch of stuff to visualize what's happening while
+1588610	1588.61	doing it at run time that makes sense.
+1591179	1591.18	A whole other talk in that.
+1593090	1593.09	I'm super excited about it and will talk to anyone about it after because I think it's
+1598840	1598.84	kind of neat, so with that, thanks very much ( applause)

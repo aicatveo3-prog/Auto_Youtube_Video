@@ -1,0 +1,6 @@
+# Save this file to pull transcripts for every URL below.
+# The hook runs as a local shell command, so this costs zero Kiro credits.
+# Lines starting with # are ignored.
+
+https://www.youtube.com/watch?v=aircAruvnKk
+https://youtu.be/UF8uR6Z6KLc
