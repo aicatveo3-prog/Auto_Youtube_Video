@@ -70,6 +70,58 @@ class Job:
 _lock = threading.Lock()
 _job = Job()
 _cancel = threading.Event()
+_current_proc = None          # the yt-dlp subprocess in flight, so cancel can kill it
+
+
+def fetch_one(vid: str, lang: str, timeout: int = 900):
+    """
+    Run one caption fetch, but stay interruptible.
+
+    The old loop only checked the cancel flag between videos, so 중단 did nothing
+    until the current (often 20-30s) download finished. Here the subprocess is
+    polled and killed the moment cancel is set, so 중단 stops within a fraction
+    of a second. Returns None if cancelled, else (returncode, stdout, stderr).
+    """
+    global _current_proc
+    proc = subprocess.Popen(
+        [sys.executable, str(SCRIPTS / "ytscript.py"), "fetch", vid, "--lang", lang],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        text=True, encoding="utf-8", errors="replace", cwd=str(ROOT),
+    )
+    with _lock:
+        _current_proc = proc
+    start = time.time()
+    try:
+        while True:
+            if _cancel.is_set():
+                _kill(proc)
+                return None
+            if time.time() - start > timeout:
+                _kill(proc)
+                return (1, "", "timed out")
+            try:
+                # communicate() drains the pipes, so short timeouts here cannot
+                # deadlock on a full buffer the way a bare poll()+read would.
+                out, err = proc.communicate(timeout=0.4)
+                if _cancel.is_set():
+                    return None
+                return (proc.returncode, out.strip(), err.strip())
+            except subprocess.TimeoutExpired:
+                continue
+    finally:
+        with _lock:
+            _current_proc = None
+
+
+def _kill(proc):
+    try:
+        proc.terminate()
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+    except Exception:                                # noqa: BLE001
+        pass
 
 
 def job_running() -> bool:
@@ -89,10 +141,10 @@ def start_job(kind: str, total: int, target):
 
 
 def finish_job(status: str, message: str = ""):
-    # A finished collection is exactly when there is something new worth
+    # A finished OR stopped collection is when there is something new worth
     # uploading, so push here rather than making the user remember a separate
     # step. Runs before the status flips so its progress shows in the log.
-    if status == "done":
+    if status in ("done", "cancelled"):
         try:
             git_autopush()
         except Exception as e:                       # never let a push break collection
@@ -514,26 +566,27 @@ def api_extract():
                                  "자막을 가져올 수 없습니다."}), 400
 
     def work():
+        done_n = 0
         for n, vid in enumerate(ids, 1):
             if _cancel.is_set():
-                finish_job("cancelled", f"stopped after {n - 1} of {len(ids)}")
-                return
+                break
             with _lock:
                 _job.current = vid
-            try:
-                cp = run_py("ytscript.py", "fetch", vid, "--lang", lang, timeout=900)
-                out, err = cp.stdout.strip(), cp.stderr.strip()
-                if cp.returncode == 0 and out.startswith("cached"):
-                    state, detail = "cached", out
-                elif cp.returncode == 0:
-                    state, detail = "ok", out
-                elif "no captions" in err:
-                    state, detail = "no_captions", "자막 없음"
-                else:
-                    state = "error"
-                    detail = (err.splitlines() or ["failed"])[-1]
-            except subprocess.TimeoutExpired:
-                state, detail = "error", "timed out"
+
+            res = fetch_one(vid, lang)
+            if res is None:            # cancelled mid-download; discard this one
+                break
+            rc, out, err = res
+
+            if rc == 0 and out.startswith("cached"):
+                state, detail = "cached", out
+            elif rc == 0:
+                state, detail = "ok", out
+            elif "no captions" in err:
+                state, detail = "no_captions", "자막 없음"
+            else:
+                state = "error"
+                detail = (err.splitlines() or ["failed"])[-1]
 
             # Remember the outcome so the list can show it after a reload and
             # stop offering the same dead ends over and over.
@@ -545,13 +598,21 @@ def api_extract():
             with _lock:
                 _job.results[vid] = {"state": state, "detail": detail}
                 _job.done = n
+            done_n = n
             log(f"[{n}/{len(ids)}] {state} {vid} :: {detail}")
 
+        counts: dict[str, int] = {}
         with _lock:
-            counts: dict[str, int] = {}
             for r in _job.results.values():
                 counts[r["state"]] = counts.get(r["state"], 0) + 1
-        finish_job("done", " · ".join(f"{k} {v}" for k, v in sorted(counts.items())))
+        summary = " · ".join(f"{k} {v}" for k, v in sorted(counts.items()))
+
+        # Whether it finished or was stopped, upload what was collected. The
+        # user explicitly asked that 중단 still pushes the results so far.
+        if _cancel.is_set():
+            finish_job("cancelled", f"{done_n}개까지 추출 후 중단 · {summary}")
+        else:
+            finish_job("done", summary)
 
     start_job("extract", len(ids), work)
     return jsonify({"started": True, "count": len(ids),
@@ -561,6 +622,12 @@ def api_extract():
 @app.post("/api/cancel")
 def api_cancel():
     _cancel.set()
+    # Kill the download in progress right away instead of waiting for it to
+    # finish; that wait was why 중단 felt unresponsive.
+    with _lock:
+        proc = _current_proc
+    if proc and proc.poll() is None:
+        _kill(proc)
     return jsonify({"cancelling": True})
 
 
