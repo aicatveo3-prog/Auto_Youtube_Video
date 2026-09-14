@@ -14,7 +14,9 @@ No AI, no API keys. Channel listing and caption download are both yt-dlp.
 from __future__ import annotations
 
 import json
+import os
 import re
+import shutil
 import subprocess
 import sys
 import threading
@@ -87,6 +89,14 @@ def start_job(kind: str, total: int, target):
 
 
 def finish_job(status: str, message: str = ""):
+    # A finished collection is exactly when there is something new worth
+    # uploading, so push here rather than making the user remember a separate
+    # step. Runs before the status flips so its progress shows in the log.
+    if status == "done":
+        try:
+            git_autopush()
+        except Exception as e:                       # never let a push break collection
+            log(f"자동 업로드 오류: {e}")
     with _lock:
         _job.status = status
         _job.message = message
@@ -97,6 +107,52 @@ def finish_job(status: str, message: str = ""):
 def log(line: str):
     with _lock:
         _job.log.append(line)
+
+
+# Turn auto-upload off by setting YTLIB_AUTOPUSH=0 before launching.
+AUTOPUSH = os.environ.get("YTLIB_AUTOPUSH", "1") != "0"
+
+
+def git_autopush():
+    """
+    Commit and push whatever just changed, with no Kiro involved.
+
+    Deliberately best-effort: if the folder is not a git repo, has no 'origin'
+    remote, or the push fails (offline, auth not set up yet), it logs and moves
+    on. Collecting captions must never depend on the upload succeeding.
+    """
+    if not AUTOPUSH:
+        return
+    git = shutil.which("git")
+    if not git or not (ROOT / ".git").is_dir():
+        return
+
+    def g(*args, timeout=180):
+        return subprocess.run([git, *args], cwd=str(ROOT), capture_output=True,
+                              text=True, encoding="utf-8", errors="replace",
+                              timeout=timeout, shell=False)
+
+    if "origin" not in (g("remote").stdout or ""):
+        log("GitHub 원격 저장소가 아직 연결되지 않아 업로드를 건너뜁니다.")
+        return
+
+    g("add", "-A")
+    stamp = time.strftime("%Y-%m-%d %H:%M")
+    commit = g("commit", "-m", f"auto: 자막 수집 {stamp}")
+    if commit.returncode != 0:
+        # The usual reason is "nothing to commit"; anything else is logged as-is.
+        if "nothing to commit" in (commit.stdout + commit.stderr):
+            log("업로드할 새 변경사항이 없습니다.")
+        else:
+            log("커밋 실패: " + (commit.stdout + commit.stderr).strip()[-120:])
+        return
+
+    push = g("push", timeout=300)
+    if push.returncode == 0:
+        log(f"GitHub 업로드 완료 ({stamp})")
+    else:
+        log("GitHub 업로드 실패(수집은 정상): "
+            + (push.stderr or push.stdout).strip()[-160:])
 
 
 # --------------------------------------------------------------------------- #
