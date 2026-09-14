@@ -247,6 +247,13 @@ def copy_assets():
     # start with '_' — and plenty of YouTube ids do (e.g. _K25c-nL3Hc).
     (DOCS / ".nojekyll").write_text("", encoding="utf-8")
 
+    # Search-engine blocking. The real defence is the <meta name="robots"
+    # noindex> tag in index.html, which Google honours per page. This robots.txt
+    # is belt-and-suspenders: on a project page (user.github.io/repo/) crawlers
+    # only read robots.txt at the domain root, so this subpath copy is advisory.
+    (DOCS / "robots.txt").write_text(
+        "User-agent: *\nDisallow: /\n", encoding="utf-8")
+
 
 # --------------------------------------------------------------------------- #
 def main() -> int:
