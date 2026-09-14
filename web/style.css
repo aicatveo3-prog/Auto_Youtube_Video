@@ -66,6 +66,10 @@
    why the "정리본이 없습니다" notice sat on top of an existing 정리본. */
 [hidden] { display: none !important; }
 
+/* On the GitHub Pages (static) build there is no server, so every control that
+   collects, extracts or authors is hidden. app.js adds .static to <body>. */
+body.static .write-only { display: none !important; }
+
 html { scrollbar-color: var(--overlay) var(--bg); }
 
 body {

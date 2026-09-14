@@ -136,6 +136,19 @@ def git_autopush():
         log("GitHub 원격 저장소가 아직 연결되지 않아 업로드를 건너뜁니다.")
         return
 
+    # Regenerate the static site so the GitHub Pages viewer reflects whatever
+    # was just collected. Failure here must not block the upload of the data.
+    try:
+        b = run_py("build_site.py", timeout=600)
+        if b.returncode == 0:
+            tail = (b.stdout or "").strip().splitlines()[-1:]
+            log("사이트 빌드: " + (tail[0] if tail else "완료"))
+        else:
+            log("사이트 빌드 실패(업로드는 계속): "
+                + (b.stderr or "").strip()[-120:])
+    except Exception as e:                           # noqa: BLE001
+        log(f"사이트 빌드 오류: {e}")
+
     g("add", "-A")
     stamp = time.strftime("%Y-%m-%d %H:%M")
     commit = g("commit", "-m", f"auto: 자막 수집 {stamp}")

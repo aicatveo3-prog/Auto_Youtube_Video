@@ -12,7 +12,7 @@
   <a class="brand" href="#/">스크립트 라이브러리</a>
   <nav>
     <a href="#/" data-nav="library">라이브러리</a>
-    <a href="#/add" data-nav="add">채널 추가</a>
+    <a href="#/add" data-nav="add" class="write-only">채널 추가</a>
   </nav>
   <form class="navsearch" id="gsearch">
     <label class="sr-only" for="gq">전체 스크립트 검색</label>
@@ -125,14 +125,14 @@
     </label>
   </div>
 
-  <div class="toolbar" id="pickbar">
+  <div class="toolbar write-only" id="pickbar">
     <button id="sel-all" class="ghost">보이는 것 전체 선택</button>
     <button id="sel-none" class="ghost">선택 해제</button>
     <span class="spacer"></span>
     <output id="count" class="count" aria-live="polite"></output>
   </div>
 
-  <div class="panel tight-panel" id="runbar">
+  <div class="panel tight-panel write-only" id="runbar">
     <div class="row wrap nomargin">
       <label class="narrow">
         <span>자막 언어</span>
@@ -195,17 +195,17 @@
         <span class="muted small" id="cl-meta"></span>
         <span class="spacer"></span>
         <button id="cl-copy" class="ghost" hidden>복사</button>
-        <button id="cl-drop" class="ghost" hidden>삭제</button>
+        <button id="cl-drop" class="ghost write-only" hidden>삭제</button>
       </div>
 
       <!-- 없을 때 -->
       <div id="cl-empty" class="reader empty-pane">
         <p class="muted">아직 정리본이 없습니다.</p>
-        <p class="muted small">
+        <p class="muted small write-only">
           Kiro 채팅에 <strong id="cl-ask"></strong> 라고 요청하면 만들어집니다.
           만들어진 뒤 이 화면을 새로고침하세요.
         </p>
-        <div class="toolbar">
+        <div class="toolbar write-only">
           <label class="narrow">
             <span class="sr-only">프롬프트</span>
             <select id="cl-prompt"></select>
@@ -213,7 +213,7 @@
           <button id="cl-copyprompt" class="ghost">프롬프트+본문 복사</button>
           <button id="cl-paste" class="ghost">결과 붙여넣기</button>
         </div>
-        <div id="cl-pastebox" hidden>
+        <div id="cl-pastebox" class="write-only" hidden>
           <label>
             <span>정리본 내용을 붙여넣고 저장</span>
             <textarea id="cl-text" rows="10" placeholder="여기에 붙여넣기"></textarea>
