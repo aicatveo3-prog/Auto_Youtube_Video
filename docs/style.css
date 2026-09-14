@@ -622,6 +622,37 @@ pre {
   to { opacity: 1; transform: translate(-50%, 0) }
 }
 
+/* Channel header: push the prompt-viewer button to the far right. */
+.cd-prompts-btn { margin-left: auto; flex: 0 0 auto; align-self: flex-start; }
+
+/* ═══ 정리본 프롬프트 모달 ══════════════════════════════════ */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(0, 0, 0, .6); backdrop-filter: blur(3px);
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--s4);
+  animation: fade .15s var(--ease);
+}
+.modal {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r2); box-shadow: var(--e3);
+  width: min(760px, 100%); max-height: 85vh;
+  display: flex; flex-direction: column; gap: var(--s3);
+  padding: var(--s4);
+}
+.modal-head { display: flex; align-items: center; gap: var(--s2); }
+.modal-head h3 { margin: 0; }
+.modal-toolbar { display: flex; gap: var(--s2); }
+.modal-toolbar select { width: 100%; }
+#pm-text {
+  margin: 0; overflow: auto; flex: 1 1 auto;
+  white-space: pre-wrap; word-break: break-word;
+  background: var(--bg); border: 1px solid var(--line-soft);
+  border-radius: var(--r1); padding: var(--s3);
+  font-size: var(--t2); line-height: 1.6;
+}
+@keyframes fade { from { opacity: 0 } to { opacity: 1 } }
+
 /* ═══ responsive ════════════════════════════════════════════ */
 @media (max-width: 1080px) {
   .split[data-mode="both"] { grid-template-columns: 1fr; }

@@ -108,6 +108,17 @@ async function staticApi(path, opts) {
     const lib = await getJSON('data/library.json');
     return { channels: lib.channels };
   }
+  if (route === '/api/prompts') {
+    try { return { prompts: await getJSON('data/prompts.json') }; }
+    catch { return { prompts: [] }; }
+  }
+  if (route.startsWith('/api/prompt/')) {
+    const key = decodeURIComponent(route.slice('/api/prompt/'.length));
+    try {
+      const list = await getJSON('data/prompts.json');
+      return list.find((p) => p.key === key) || { error: 'not found' };
+    } catch { return { error: 'not found' }; }
+  }
   return {};
 }
 
@@ -351,24 +362,6 @@ async function loadLibrary() {
   d.loose.forEach((v) => ll.append(looseRow(v)));
 }
 
-/*
- * "정리본" badge that also names the prompt it was built with.
- * List row shows a short label (정리본 · 지식한입); hovering reveals the full
- * prompt name and the date it was generated.
- */
-function shortPromptLabel(name) {
-  if (!name) return '';
-  return name.replace(/\s*정리본\s*$/, '').trim();  // "지식한입 정리본" → "지식한입"
-}
-
-function cleanBadge(v) {
-  const label = shortPromptLabel(v.clean_prompt_name);
-  const b = el('span', 'badge clean', label ? `정리본 · ${label}` : '정리본');
-  const tip = [v.clean_prompt_name, v.clean_at].filter(Boolean).join(' · ');
-  if (tip) b.title = tip;
-  return b;
-}
-
 function looseRow(v) {
   const card = el('div', 'card');
   card.append(el('div', 'pick'));
@@ -382,7 +375,7 @@ function looseRow(v) {
     `${v.channel || '채널 미확인'} · ${commas(v.words)}단어 · ${fmtDur(v.duration)}`));
   const right = el('div', 'right');
   right.append(el('span', 'badge local', '추출됨'));
-  if (v.clean) right.append(cleanBadge(v));
+  if (v.clean) right.append(el('span', 'badge clean', '정리본'));
   const acts = el('div', 'acts');
   acts.append(actionBtn('read', '읽기', `#/video/${v.id}`));
   acts.append(actionBtn('yt', '유튜브',
@@ -597,7 +590,7 @@ function videoRow(v) {
     right.append(el('span', 'badge local',
       v.local_words ? `${commas(v.local_words)}단어` : '추출됨'));
   }
-  if (v.clean) right.append(cleanBadge(v));
+  if (v.clean) right.append(el('span', 'badge clean', '정리본'));
 
   if (locked) {
     const b = el('span', 'badge members', '멤버십 전용');
@@ -1129,8 +1122,55 @@ function poll(onDone, onTick) {
   }, 700);
 }
 
+/* ── 정리본 프롬프트 모달 ───────────────────────────────── */
+let _prompts = null;
+
+async function openPromptModal() {
+  const sel = $('#pm-select');
+  if (!_prompts) {
+    try { _prompts = (await api('/api/prompts')).prompts || []; }
+    catch { _prompts = []; }
+    sel.textContent = '';
+    if (!_prompts.length) {
+      const o = el('option', null, '사용 가능한 프롬프트가 없습니다');
+      o.value = '';
+      sel.append(o);
+    } else {
+      _prompts.forEach((p) => {
+        const o = el('option', null, p.name);
+        o.value = p.key;
+        sel.append(o);
+      });
+    }
+  }
+  renderPromptText();
+  $('#prompt-modal').hidden = false;
+}
+
+function renderPromptText() {
+  const p = (_prompts || []).find((x) => x.key === $('#pm-select').value);
+  $('#pm-desc').textContent = p ? (p.description || '') : '';
+  $('#pm-text').textContent = p ? p.text : '표시할 프롬프트가 없습니다.';
+}
+
+function closePromptModal() { $('#prompt-modal').hidden = true; }
+
 /* ── wiring ─────────────────────────────────────────────── */
 window.addEventListener('hashchange', route);
+
+$('#cd-prompts').addEventListener('click', openPromptModal);
+$('#pm-select').addEventListener('change', renderPromptText);
+$('#pm-close').addEventListener('click', closePromptModal);
+$('#pm-copy').addEventListener('click', () => {
+  const p = (_prompts || []).find((x) => x.key === $('#pm-select').value);
+  if (p) writeClipboard(p.text, `프롬프트 복사 · ${commas(p.text.length)}자`);
+});
+$('#prompt-modal').addEventListener('click', (e) => {
+  if (e.target === $('#prompt-modal')) closePromptModal();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !$('#prompt-modal').hidden) closePromptModal();
+});
 
 $('#gsearch').addEventListener('submit', (e) => {
   e.preventDefault();
