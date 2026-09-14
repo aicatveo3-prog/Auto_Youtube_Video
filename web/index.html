@@ -93,6 +93,7 @@
       <h2 class="vh" id="cd-name"></h2>
       <p class="muted" id="cd-info"></p>
     </div>
+    <button id="cd-prompts" class="ghost btn cd-prompts-btn" type="button">📝 정리본 프롬프트</button>
   </div>
 
   <div class="tabbar" role="tablist">
@@ -244,6 +245,26 @@
 </section>
 
 </main>
+
+<!-- ══ 정리본 프롬프트 모달 ══════════════════════════════ -->
+<div id="prompt-modal" class="modal-overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pm-title">
+    <div class="modal-head">
+      <h3 id="pm-title">정리본 프롬프트</h3>
+      <span class="spacer"></span>
+      <button id="pm-copy" class="ghost" type="button">복사</button>
+      <button id="pm-close" class="ghost" type="button" aria-label="닫기">✕</button>
+    </div>
+    <div class="modal-toolbar">
+      <label class="grow">
+        <span class="sr-only">프롬프트 선택</span>
+        <select id="pm-select"></select>
+      </label>
+    </div>
+    <p class="muted small" id="pm-desc"></p>
+    <pre id="pm-text" class="reader"></pre>
+  </div>
+</div>
 
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 <script src="/app.js"></script>
