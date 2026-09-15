@@ -1221,6 +1221,24 @@ $('#rd-find').addEventListener('input', () => {
   findTimer = setTimeout(() => runFind($('#rd-find').value.trim()), 180);
 });
 
+/*
+ * The back link and .panehead are sticky and pin themselves relative to the
+ * nav, whose height changes when it wraps on narrow screens. Measuring it
+ * keeps both offsets exact instead of trusting a hard-coded number.
+ */
+function syncNavHeight() {
+  const nav = $('.nav');
+  if (!nav) return;
+  const h = Math.round(nav.getBoundingClientRect().height);
+  if (h) document.documentElement.style.setProperty('--navh', `${h}px`);
+}
+syncNavHeight();
+{
+  const nav = $('.nav');
+  if (nav && window.ResizeObserver) new ResizeObserver(syncNavHeight).observe(nav);
+  else window.addEventListener('resize', syncNavHeight);
+}
+
 // On GitHub Pages there is no server: mark the body so CSS can hide every
 // collect/extract/author control, and skip job polling entirely.
 if (STATIC) document.body.classList.add('static');
