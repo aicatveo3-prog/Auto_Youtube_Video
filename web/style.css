@@ -650,12 +650,17 @@ pre {
 .cd-prompts-btn { margin-left: auto; flex: 0 0 auto; align-self: flex-start; }
 
 /* ═══ 정리본 프롬프트 모달 ══════════════════════════════════ */
+/* When a modal is open, freeze the page behind it so the underlying video
+   list doesn't scroll along with (or instead of) the modal content. */
+body.modal-open { overflow: hidden; }
+
 .modal-overlay {
   position: fixed; inset: 0; z-index: 60;
   background: rgba(0, 0, 0, .6); backdrop-filter: blur(3px);
   display: flex; align-items: center; justify-content: center;
   padding: var(--s4);
   animation: fade .15s var(--ease);
+  overscroll-behavior: contain;
 }
 .modal {
   background: var(--surface); border: 1px solid var(--line);
@@ -675,6 +680,8 @@ pre {
   border-radius: var(--r1); padding: var(--s4);
   font-size: var(--t3); line-height: 1.75;
   min-height: 50vh;
+  /* Keep scroll momentum inside the box; don't chain to the page behind. */
+  overscroll-behavior: contain;
 }
 @keyframes fade { from { opacity: 0 } to { opacity: 1 } }
 
