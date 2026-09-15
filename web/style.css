@@ -486,9 +486,8 @@ fieldset.tabs label { display: inline-flex; align-items: center; gap: var(--s1);
   display: flex; align-items: center; gap: var(--s2);
   margin-bottom: var(--s2); padding-bottom: var(--s2);
   border-bottom: 1px solid var(--line-soft);
-  /* Pins under the sticky back link rather than straight under the nav,
-     so the two never cover each other in side-by-side mode. */
-  position: sticky; top: calc(var(--navh) + var(--backh) + var(--s4)); z-index: 5;
+  /* Deliberately not sticky: only the back link follows the scroll, so the
+     reading column stays clear of pinned chrome. */
   background: var(--bg);
 }
 .panehead h3 {
@@ -681,7 +680,6 @@ pre {
 /* ═══ responsive ════════════════════════════════════════════ */
 @media (max-width: 1080px) {
   .split[data-mode="both"] { grid-template-columns: 1fr; }
-  .panehead { position: static; }
 }
 
 @media (max-width: 760px) {
