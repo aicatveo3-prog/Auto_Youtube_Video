@@ -1134,26 +1134,40 @@ function poll(onDone, onTick) {
 /* ── 정리본 프롬프트 모달 ───────────────────────────────── */
 let _prompts = null;
 
-async function openPromptModal() {
+async function loadPrompts() {
+  if (_prompts) return _prompts;
+  try { _prompts = (await api('/api/prompts')).prompts || []; }
+  catch { _prompts = []; }
+  return _prompts;
+}
+
+/*
+ * One modal serves two buttons. `kind` decides which family of prompts the
+ * dropdown lists: cleanup-* for 정리본, analysis-* for 분석본. The list is
+ * rebuilt on every open because the filter changes between the two buttons.
+ */
+async function openPromptModal(kind) {
+  const all = await loadPrompts();
+  const list = all.filter((p) => kind === 'analysis'
+    ? p.key.startsWith('analysis')
+    : p.key.startsWith('cleanup'));
+
   const sel = $('#pm-select');
-  if (!_prompts) {
-    try { _prompts = (await api('/api/prompts')).prompts || []; }
-    catch { _prompts = []; }
-    sel.textContent = '';
-    if (!_prompts.length) {
-      const o = el('option', null, '사용 가능한 프롬프트가 없습니다');
-      o.value = '';
-      sel.append(o);
-    } else {
-      _prompts.forEach((p) => {
-        const o = el('option', null, p.name);
-        o.value = p.key;
-        sel.append(o);
-      });
-    }
+  sel.textContent = '';
+  if (!list.length) {
+    const o = el('option', null, '사용 가능한 프롬프트가 없습니다');
+    o.value = ''; sel.append(o);
+  } else {
+    list.forEach((p) => {
+      const o = el('option', null, p.name);
+      o.value = p.key; sel.append(o);
+    });
   }
+
+  $('#pm-title').textContent = kind === 'analysis' ? '분석본 프롬프트' : '정리본 프롬프트';
   renderPromptText();
   $('#prompt-modal').hidden = false;
+  document.body.classList.add('modal-open');   // lock the page behind the modal
 }
 
 function renderPromptText() {
@@ -1162,12 +1176,16 @@ function renderPromptText() {
   $('#pm-text').textContent = p ? p.text : '표시할 프롬프트가 없습니다.';
 }
 
-function closePromptModal() { $('#prompt-modal').hidden = true; }
+function closePromptModal() {
+  $('#prompt-modal').hidden = true;
+  document.body.classList.remove('modal-open');
+}
 
 /* ── wiring ─────────────────────────────────────────────── */
 window.addEventListener('hashchange', route);
 
-$('#cd-prompts').addEventListener('click', openPromptModal);
+$('#cd-prompts').addEventListener('click', () => openPromptModal('cleanup'));
+$('#cd-analysis').addEventListener('click', () => openPromptModal('analysis'));
 $('#pm-select').addEventListener('change', renderPromptText);
 $('#pm-close').addEventListener('click', closePromptModal);
 $('#pm-copy').addEventListener('click', () => {
