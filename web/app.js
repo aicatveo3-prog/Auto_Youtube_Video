@@ -22,6 +22,8 @@ const S = {
   poll: null,
   reader: null,       // loaded transcript
   clean: null,        // loaded 정리본
+  analysis: null,     // loaded 분석본
+  primary: 'clean',   // which authored doc owns the column: clean | analysis
 };
 
 /* ── helpers ────────────────────────────────────────────── */
@@ -103,6 +105,13 @@ async function staticApi(path, opts) {
     try {
       const v = await getJSON(`data/v/${vid}.json`);
       return v.clean || { exists: false };
+    } catch { return { exists: false }; }
+  }
+  if (route.startsWith('/api/analysis/')) {
+    const vid = route.slice('/api/analysis/'.length);
+    try {
+      const v = await getJSON(`data/v/${vid}.json`);
+      return v.analysis || { exists: false };
     } catch { return { exists: false }; }
   }
   if (route === '/api/search') {
@@ -334,7 +343,7 @@ async function loadLibrary() {
   box.textContent = '';
   [['채널', t.channels], ['목록 영상', t.listed],
    ['추출', t.extracted], ['정리본', t.cleaned ?? 0],
-   ['모은 단어', t.words]]
+   ['분석본', t.analyzed ?? 0], ['모은 단어', t.words]]
     .forEach(([k, v]) => {
       const c = el('div', 'stat');
       c.append(el('div', 'sv', commas(v)), el('div', 'sk', k));
@@ -351,6 +360,7 @@ async function loadLibrary() {
     body.append(el('div', 'cname', c.channel));
     const bits = [`${commas(c.extracted)} / ${commas(c.total)}`];
     if (c.cleaned) bits.push(`정리본 ${c.cleaned}`);
+    if (c.analyzed) bits.push(`분석본 ${c.analyzed}`);
     if (c.words) bits.push(`${commas(c.words)}단어`);
     body.append(el('div', 'cstat', bits.join(' · ')));
     a.append(body);
@@ -381,6 +391,7 @@ function looseRow(v) {
   const right = el('div', 'right');
   right.append(el('span', 'badge local', '추출됨'));
   if (v.clean) right.append(el('span', 'badge clean', '정리본'));
+  if (v.analysis) right.append(el('span', 'badge analysis', '분석본'));
   const acts = el('div', 'acts');
   acts.append(actionBtn('read', '읽기', `#/video/${v.id}`));
   acts.append(actionBtn('yt', '유튜브',
@@ -598,6 +609,7 @@ function videoRow(v) {
       v.local_words ? `${commas(v.local_words)}단어` : '추출됨'));
   }
   if (v.clean) right.append(el('span', 'badge clean', '정리본'));
+  if (v.analysis) right.append(el('span', 'badge analysis', '분석본'));
 
   if (locked) {
     const b = el('span', 'badge members', '멤버십 전용');
@@ -673,33 +685,68 @@ async function loadReader(vid) {
   $('#rd-back').textContent = d.channel_key ? `← ${d.channel}` : '← 라이브러리';
   $('#rd-find').value = '';
   $('#rd-hits').textContent = '';
+  $('#rd-orig').checked = false;
+  S.primary = 'clean';            // default; falls back to analysis if no clean
   paintReader('');
-  await loadClean(d.id);          // sets S.clean, then applyMode uses it
+  await loadAnalysis(d.id);       // sets S.analysis
+  await loadClean(d.id);          // sets S.clean, then applyMode uses both
+}
+
+/*
+ * Which authored document owns the column.
+ *
+ * A video can carry a 정리본, a 분석본, both, or neither. When both exist a
+ * segmented switch lets the reader pick; S.primary holds that choice. This
+ * resolves it against what actually exists so a stale choice never selects a
+ * document that isn't there.
+ */
+function primaryDoc() {
+  const hasClean = !!S.clean?.exists;
+  const hasAnalysis = !!S.analysis?.exists;
+  if (!hasClean && !hasAnalysis) return null;
+  if (S.primary === 'analysis' && hasAnalysis) return 'analysis';
+  if (S.primary === 'clean' && hasClean) return 'clean';
+  return hasClean ? 'clean' : 'analysis';
 }
 
 /*
  * Decide what the reader shows.
  *
- * A 정리본 is what you actually came to read, so it owns the column and 원본 is
- * a checkbox away. Without one there is nothing to prefer, so 원본 takes the
- * column and the "how to make one" hint sits above it instead of beside it.
+ * An authored document (정리본/분석본) is what you came to read, so it owns the
+ * column and 원본 is a checkbox away. Without one there is nothing to prefer,
+ * so 원본 takes the column and the "how to make one" hint sits above it.
  */
-function readerMode() {
-  if (!S.clean?.exists) return 'orig';
-  return $('#rd-orig').checked ? 'both' : 'clean';
-}
-
 function applyMode() {
-  const mode = readerMode();
   const hasClean = !!S.clean?.exists;
+  const hasAnalysis = !!S.analysis?.exists;
+  const hasAny = hasClean || hasAnalysis;
+  const prim = primaryDoc();                  // 'clean' | 'analysis' | null
+  if (prim) S.primary = prim;
 
+  const showOrig = hasAny ? $('#rd-orig').checked : true;
+  const mode = !hasAny ? 'orig' : (showOrig ? 'both' : 'primary');
   $('#rd-split-wrap').dataset.mode = mode;
-  $('#rd-orig-wrap').hidden = !hasClean;      // nothing to toggle without one
-  $('#rd-orig-pane').hidden = mode === 'clean';
-  $('#rd-clean-pane').hidden = false;
+
+  $('#rd-orig-wrap').hidden = !hasAny;         // nothing to toggle without one
+  $('#rd-orig-pane').hidden = mode === 'primary';
+
+  // The switch only earns its place when both documents exist.
+  $('#rd-doc-switch').hidden = !(hasClean && hasAnalysis);
+  $$('#rd-doc-switch .docbtn').forEach((b) =>
+    b.classList.toggle('on', b.dataset.doc === S.primary));
+
+  // With nothing authored the empty 정리본 hint carries the column above 원본.
+  if (!hasAny) {
+    $('#rd-clean-pane').hidden = false;
+    $('#rd-analysis-pane').hidden = true;
+  } else {
+    $('#rd-clean-pane').hidden = S.primary !== 'clean';
+    $('#rd-analysis-pane').hidden = S.primary !== 'analysis';
+  }
 
   // Keep find pointed at whatever is on screen.
-  const target = hasClean ? '정리본' : '원본';
+  const target = !hasAny ? '원본'
+    : (S.primary === 'analysis' ? '분석본' : '정리본');
   $('#rd-find').placeholder = `${target}에서 찾기`;
   const q = $('#rd-find').value.trim();
   if (q) runFind(q); else $('#rd-hits').textContent = '';
@@ -755,16 +802,20 @@ function markWithin(root, needle) {
 }
 
 function runFind(needle) {
-  const onClean = !!S.clean?.exists;
-  let hits;
-  if (onClean) {
-    const body = $('#cl-body');
-    renderMarkdown(body, S.clean.text);      // reset, then mark
-    hits = markWithin(body, needle);
+  const prim = primaryDoc();
+  let host, hits;
+  if (prim === 'analysis') {
+    host = $('#an-body');
+    renderMarkdown(host, S.analysis.text);   // reset, then mark
+    hits = markWithin(host, needle);
+  } else if (prim === 'clean') {
+    host = $('#cl-body');
+    renderMarkdown(host, S.clean.text);       // reset, then mark
+    hits = markWithin(host, needle);
   } else {
+    host = $('#rd-body');
     hits = paintReader(needle);
   }
-  const host = onClean ? $('#cl-body') : $('#rd-body');
   $('#rd-hits').textContent = needle
     ? (hits ? `${hits}건 일치` : '일치 없음') : '';
   if (needle && hits) {
@@ -931,6 +982,33 @@ async function loadClean(vid) {
   }
   pane.hidden = false;
   applyMode();
+}
+
+/* ── 분석본 ─────────────────────────────────────────────── */
+/*
+ * Read-only sibling of loadClean. A 분석본 is only ever authored on the local
+ * server (there is no paste/save UI for it here), so this just renders what the
+ * build baked. applyMode, called from loadClean afterwards, decides visibility.
+ */
+async function loadAnalysis(vid) {
+  const body = $('#an-body');
+  let d;
+  try { d = await api(`/api/analysis/${encodeURIComponent(vid)}`); }
+  catch { d = { exists: false }; }
+  S.analysis = d;
+
+  if (d.exists) {
+    body.hidden = false;
+    renderMarkdown(body, d.text);
+    $('#an-meta').textContent =
+      `${commas(d.chars)}자 · ${d.prompt || 'analysis'} · ${d.generated || ''}`;
+    $('#an-copy').hidden = false;
+  } else {
+    body.hidden = true;
+    body.textContent = '';
+    $('#an-meta').textContent = '';
+    $('#an-copy').hidden = true;
+  }
 }
 
 async function fillPrompts() {
@@ -1241,7 +1319,13 @@ $('#cl-paste').addEventListener('click', () => {
   $('#cl-text').focus();
 });
 $('#cl-cancel').addEventListener('click', () => { $('#cl-pastebox').hidden = true; });
+$('#an-copy').addEventListener('click', () => writeClipboard(S.analysis?.text));
 $('#rd-orig').addEventListener('change', applyMode);
+$$('#rd-doc-switch .docbtn').forEach((b) => b.addEventListener('click', () => {
+  S.primary = b.dataset.doc;
+  $('#rd-find').value = '';
+  applyMode();
+}));
 let findTimer;
 $('#rd-find').addEventListener('input', () => {
   clearTimeout(findTimer);

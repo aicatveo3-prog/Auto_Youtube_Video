@@ -77,6 +77,12 @@ def clean_ids() -> set[str]:
     return {d.name for d in TRANSCRIPTS.iterdir() if (d / "clean.md").exists()}
 
 
+def analysis_ids() -> set[str]:
+    if not TRANSCRIPTS.is_dir():
+        return set()
+    return {d.name for d in TRANSCRIPTS.iterdir() if (d / "analysis.md").exists()}
+
+
 def owner_index(blobs) -> dict[str, str]:
     idx: dict[str, str] = {}
     for key, blob in blobs:
@@ -125,6 +131,20 @@ def read_clean(vid: str) -> dict:
     }
 
 
+def read_analysis(vid: str) -> dict:
+    p = TRANSCRIPTS / vid / "analysis.md"
+    if not p.exists():
+        return {"exists": False}
+    meta, body = split_front_matter(p.read_text(encoding="utf-8"))
+    return {
+        "exists": True, "id": vid,
+        "prompt": meta.get("prompt", ""),
+        "generated": meta.get("generated", ""),
+        "chars": len(body), "text": body,
+        "path": f"transcripts/{vid}/analysis.md",
+    }
+
+
 def build_prompts() -> list[dict]:
     """Bake every cleanup prompt (prompts/*.md) so the static site can show
     the full instruction text, not just its name."""
@@ -152,7 +172,7 @@ def write_json(path: Path, obj) -> int:
     return len(text.encode("utf-8"))
 
 
-def build_library(blobs, have, cleaned, metas) -> dict:
+def build_library(blobs, have, cleaned, analyzed, metas) -> dict:
     owner = owner_index(blobs)
     channels, claimed = [], set()
     for key, blob in blobs:
@@ -169,6 +189,7 @@ def build_library(blobs, have, cleaned, metas) -> dict:
             "total": len(vids),
             "extracted": len(mine),
             "cleaned": len([v for v in mine if v in cleaned]),
+            "analyzed": len([v for v in mine if v in analyzed]),
             "words": sum((metas[v].get("words") or 0) for v in mine),
             "avatar": blob.get("avatar") or "",
         })
@@ -185,6 +206,7 @@ def build_library(blobs, have, cleaned, metas) -> dict:
             "channel_id": m.get("channel_id") or "",
             "words": m.get("words"), "duration": m.get("duration_sec"),
             "clean": vid in cleaned,
+            "analysis": vid in analyzed,
             "thumb": f"https://i.ytimg.com/vi/{vid}/mqdefault.jpg",
         })
     loose.sort(key=lambda v: -(v["words"] or 0))
@@ -195,6 +217,7 @@ def build_library(blobs, have, cleaned, metas) -> dict:
             "listed": sum(c["total"] for c in channels),
             "extracted": len(have),
             "cleaned": len(cleaned & have),
+            "analyzed": len(analyzed & have),
             "words": sum((metas[v].get("words") or 0) for v in have),
         },
         "channels": channels,
@@ -202,7 +225,7 @@ def build_library(blobs, have, cleaned, metas) -> dict:
     }
 
 
-def build_channel(key, blob, have, cleaned, local) -> dict:
+def build_channel(key, blob, have, cleaned, analyzed, local) -> dict:
     # Same enrichment the /api/channel endpoint did. No failure state on the
     # static site (retrying is a write action), so 'fail' is left blank.
     for v in blob.get("videos", []):
@@ -212,6 +235,7 @@ def build_channel(key, blob, have, cleaned, local) -> dict:
         v["local_lang"] = local.get(vid, {}).get("lang")
         v["local_date"] = local.get(vid, {}).get("date", "")
         v["clean"] = vid in cleaned
+        v["analysis"] = vid in analyzed
         v.setdefault("access", "public")
         v["fail"] = ""
     return blob
@@ -225,6 +249,7 @@ def build_video(vid, owner) -> dict:
         "channel": m.get("channel") or "",
         "channel_key": owner.get(vid),
         "has_clean": (TRANSCRIPTS / vid / "clean.md").exists(),
+        "has_analysis": (TRANSCRIPTS / vid / "analysis.md").exists(),
         "duration": m.get("duration_sec"),
         "upload_date": m.get("upload_date", ""),
         "words": m.get("words"),
@@ -235,6 +260,7 @@ def build_video(vid, owner) -> dict:
         "text": plain_text(vid),
         # Folded in so the reader needs a single request per video.
         "clean": read_clean(vid),
+        "analysis": read_analysis(vid),
     }
 
 
@@ -282,6 +308,7 @@ def main() -> int:
     blobs = read_channel_blobs()
     have = set(extracted_ids())
     cleaned = clean_ids()
+    analyzed = analysis_ids()
     metas = {v: read_meta(v) for v in have}
     local = {v: local_info(v) for v in have}
     owner = owner_index(blobs)
@@ -294,13 +321,13 @@ def main() -> int:
 
     total = 0
     total += write_json(DATA / "library.json",
-                        build_library(blobs, have, cleaned, metas))
+                        build_library(blobs, have, cleaned, analyzed, metas))
 
     total += write_json(DATA / "prompts.json", build_prompts())
 
     for key, blob in blobs:
         total += write_json(DATA / "ch" / f"{key}.json",
-                           build_channel(key, blob, have, cleaned, local))
+                           build_channel(key, blob, have, cleaned, analyzed, local))
 
     for vid in sorted(have):
         total += write_json(DATA / "v" / f"{vid}.json", build_video(vid, owner))
@@ -328,7 +355,7 @@ def main() -> int:
     copy_assets()
 
     print(f"built docs/ : 채널 {len(blobs)} · 영상 {len(have)} · 정리본 {len(cleaned)} "
-          f"· data {total/1024/1024:.1f} MB")
+          f"· 분석본 {len(analyzed)} · data {total/1024/1024:.1f} MB")
     return 0
 
 
