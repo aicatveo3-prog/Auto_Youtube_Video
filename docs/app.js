@@ -576,8 +576,10 @@ function videoRow(v) {
     lab.htmlFor = `cb-${v.id}`;
     mid.append(lab);
   }
-  mid.append(el('div', 'meta',
-    `${fmtDur(v.duration)} · 조회 ${fmtNum(v.views)}`));
+  const metaBits = [fmtDur(v.duration), `조회 ${fmtNum(v.views)}`];
+  const vdate = fmtDate(v.local_date);
+  if (vdate) metaBits.push(vdate);
+  mid.append(el('div', 'meta', metaBits.join(' · ')));
   card.append(mid);
 
   const right = el('div', 'right');

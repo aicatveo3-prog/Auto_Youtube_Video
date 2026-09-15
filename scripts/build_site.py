@@ -90,6 +90,9 @@ def local_info(vid: str) -> dict:
     return {
         "words": m.get("words"),
         "lang": (m.get("caption_kind") or "").split(":")[-1].split("/")[0],
+        # Flat channel listings carry no date; the transcript's own meta.json
+        # does, so surface it for videos we have actually extracted.
+        "date": m.get("upload_date", ""),
     }
 
 
@@ -207,6 +210,7 @@ def build_channel(key, blob, have, cleaned, local) -> dict:
         v["local"] = vid in have
         v["local_words"] = local.get(vid, {}).get("words")
         v["local_lang"] = local.get(vid, {}).get("lang")
+        v["local_date"] = local.get(vid, {}).get("date", "")
         v["clean"] = vid in cleaned
         v.setdefault("access", "public")
         v["fail"] = ""

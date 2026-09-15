@@ -250,13 +250,14 @@ def local_library() -> dict[str, dict]:
     for d in TRANSCRIPTS.iterdir():
         if not (d / "plain.txt").exists():
             continue
-        info = {"words": None, "lang": None}
+        info = {"words": None, "lang": None, "date": ""}
         meta = d / "meta.json"
         if meta.exists():
             try:
                 m = json.loads(meta.read_text(encoding="utf-8"))
                 info["words"] = m.get("words")
                 info["lang"] = (m.get("caption_kind") or "").split(":")[-1].split("/")[0]
+                info["date"] = m.get("upload_date", "")
             except (json.JSONDecodeError, OSError):
                 pass
         out[d.name] = info
@@ -480,6 +481,7 @@ def api_channel(key: str):
         v["local"] = vid in have
         v["local_words"] = have.get(vid, {}).get("words")
         v["local_lang"] = have.get(vid, {}).get("lang")
+        v["local_date"] = have.get(vid, {}).get("date", "")
         v["clean"] = vid in cleaned
         v.setdefault("access", "public")
         v["fail"] = "" if v["local"] else fails.get(vid, {}).get("reason", "")
