@@ -177,6 +177,10 @@
     </label>
     <output id="rd-hits" class="count" aria-live="polite"></output>
     <span class="spacer"></span>
+    <div class="docswitch" id="rd-doc-switch" role="tablist" aria-label="문서 선택" hidden>
+      <button role="tab" type="button" class="docbtn" data-doc="clean">정리본</button>
+      <button role="tab" type="button" class="docbtn" data-doc="analysis">분석본</button>
+    </div>
     <label class="inline" id="rd-orig-wrap">
       <input id="rd-orig" type="checkbox"> 원본 함께 보기
     </label>
@@ -232,6 +236,17 @@
 
       <!-- 있을 때 -->
       <article id="cl-body" class="reader markdown" hidden></article>
+    </div>
+
+    <!-- 분석본 -->
+    <div class="pane" id="rd-analysis-pane" hidden>
+      <div class="panehead">
+        <h3>분석본</h3>
+        <span class="muted small" id="an-meta"></span>
+        <span class="spacer"></span>
+        <button id="an-copy" class="ghost" hidden>복사</button>
+      </div>
+      <article id="an-body" class="reader markdown" hidden></article>
     </div>
   </div>
 </section>
