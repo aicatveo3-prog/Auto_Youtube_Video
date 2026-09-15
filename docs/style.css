@@ -476,6 +476,12 @@ fieldset.tabs label { display: inline-flex; align-items: center; gap: var(--s1);
   grid-template-columns: minmax(0, 48em);
   justify-content: center;
 }
+/* 분석본은 표가 많아 48em에 갇히면 셀이 짓눌린다. 단독으로 볼 때는 본문
+   영역(main, 1240px)을 꽉 채워 표가 숨 쉴 공간을 준다. 정리본·원본은 그대로. */
+.split[data-mode="primary"][data-primary="analysis"] {
+  grid-template-columns: minmax(0, 1fr);
+  justify-content: stretch;
+}
 /* With no 정리본 the hint belongs above the text, not beside it. */
 .split[data-mode="orig"] #rd-clean-pane { order: -1; }
 .split[data-mode="orig"] #rd-clean-pane .panehead { display: none; }
