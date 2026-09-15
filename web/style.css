@@ -46,6 +46,12 @@
      between --s2 and --s3 to reach a comfortable 38px height. */
   --ctl-y: 9px;
 
+  /* Heights of the two stacked sticky layers. The back link pins just
+     under the nav, and .panehead pins under the back link, so both stay
+     readable while scrolling a long 정리본. */
+  --navh: 58px;
+  --backh: 30px;
+
   /* ── type scale ──────────────────────────────────────────── */
   --t1: 12px; --t2: 13px; --t3: 15px; --t4: 17px;
   --t5: 20px; --t6: 24px; --t7: 30px;
@@ -146,13 +152,30 @@ main { padding: var(--s5) var(--s5) var(--s7); max-width: 1240px; }
 .strong { font-weight: 600; }
 .spacer { flex: 1 1 auto; }
 
+/*
+ * Sticky so it is reachable from anywhere in a long document — reading to
+ * the bottom of a 정리본 used to mean scrolling all the way back up to leave.
+ * display:flex + fit-content keeps it block-level (sticky is unreliable on
+ * inline-level boxes) while staying only as wide as its label.
+ */
 .back {
-  display: inline-flex; align-items: center; gap: var(--s1);
+  position: sticky; top: calc(var(--navh) + var(--s2)); z-index: 20;
+  display: flex; width: fit-content; align-items: center; gap: var(--s1);
+  height: var(--backh); padding: 0 var(--s3);
   margin-bottom: var(--s3);
+  border: 1px solid var(--line-soft); border-radius: var(--r3);
+  background: color-mix(in srgb, var(--raised) 92%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--e1);
   color: var(--faint); font-size: var(--t2);
-  transition: color .15s var(--ease);
+  transition: color .15s var(--ease), background .15s var(--ease),
+              border-color .15s var(--ease);
 }
-.back:hover { color: var(--accent); text-decoration: none; }
+.back:hover {
+  color: var(--accent); text-decoration: none;
+  border-color: var(--accent-dim);
+  background: var(--raised);
+}
 
 /* ═══ stats strip ═══════════════════════════════════════════ */
 .stats {
@@ -463,7 +486,9 @@ fieldset.tabs label { display: inline-flex; align-items: center; gap: var(--s1);
   display: flex; align-items: center; gap: var(--s2);
   margin-bottom: var(--s2); padding-bottom: var(--s2);
   border-bottom: 1px solid var(--line-soft);
-  position: sticky; top: 58px; z-index: 5;
+  /* Pins under the sticky back link rather than straight under the nav,
+     so the two never cover each other in side-by-side mode. */
+  position: sticky; top: calc(var(--navh) + var(--backh) + var(--s4)); z-index: 5;
   background: var(--bg);
 }
 .panehead h3 {
@@ -660,6 +685,10 @@ pre {
 }
 
 @media (max-width: 760px) {
+  /* The nav wraps to two rows here (search drops to its own line), so the
+     sticky offset has to grow. JS overwrites --navh with the measured value;
+     this is just a sane first-paint fallback. */
+  :root { --navh: 106px; }
   main { padding: var(--s4) var(--s4) var(--s7); }
   .nav { gap: var(--s3); padding: var(--s3) var(--s4); }
   .navsearch { margin-left: 0; width: 100%; }
