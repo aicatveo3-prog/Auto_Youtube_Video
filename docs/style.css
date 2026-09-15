@@ -691,13 +691,65 @@ pre {
   .nav { gap: var(--s3); padding: var(--s3) var(--s4); }
   .navsearch { margin-left: 0; width: 100%; }
   .navsearch input { width: 100%; }
+
+  /* iOS Safari zooms the whole page when a focused field's text is under
+     16px. Bumping the font on mobile keeps focus from triggering that jump. */
+  input[type=text], input[type=number], input[type=search],
+  select, textarea { font-size: 16px; }
+
+  /* Finger-friendly hit areas. */
+  button, .btn, .rowbtn, .tabbtn { min-height: 40px; }
+  .rowbtn { padding: var(--s2) var(--s3); }
+
+  /* Five tabs overflow a phone width; let the bar scroll sideways instead of
+     wrapping into a ragged two-row block. */
+  .tabbar {
+    display: flex; width: 100%; overflow-x: auto;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .tabbar::-webkit-scrollbar { display: none; }
+  .tabbtn { flex: 0 0 auto; white-space: nowrap; align-items: center; }
+
   .stats { gap: var(--s4); padding: var(--s4); }
-  .card { grid-template-columns: 24px 96px 1fr; }
-  .card .right { grid-column: 2 / -1; flex-wrap: wrap; }
-  .card img { width: 96px; }
+
+  /* Video row: collapse the empty selection gutter and let the badges and
+     action buttons sit on their own line under the title. */
+  .card { grid-template-columns: auto 104px 1fr; gap: var(--s2) var(--s3); }
+  .card img { width: 104px; }
+  .card .right {
+    grid-column: 2 / -1;
+    flex-wrap: wrap; justify-content: flex-start; gap: var(--s2);
+  }
   .rowbtn span { display: inline; }
+
+  /* Channel header: the prompt button drops to its own line when cramped. */
+  .chead { flex-wrap: wrap; }
+
   .reader { padding: var(--s4) var(--s5); font-size: 15.5px; }
   .split[data-mode] { grid-template-columns: 1fr; }
+
+  /* A wide 정리본 table should scroll on its own, not shove the page sideways. */
+  .markdown table { display: block; width: 100%; overflow-x: auto; }
+
+  /* Prompt viewer uses the full width on a small screen. */
+  .modal { width: 100%; max-height: 88vh; }
+}
+
+@media (max-width: 480px) {
+  main { padding: var(--s3) var(--s3) var(--s7); }
+
+  /* Stats read as a tidy 2-up grid rather than a long wrapping row. */
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); }
+
+  /* Slightly smaller thumbnail, and the two row actions stretch full width so
+     they are easy to tap. */
+  .card { grid-template-columns: auto 84px 1fr; }
+  .card img { width: 84px; }
+  .card .acts { width: 100%; }
+  .card .acts .rowbtn { flex: 1 1 0; justify-content: center; }
+
+  .hit { padding: var(--s4); }
+  .hithead { gap: var(--s1); }
 }
 
 /* Respect the OS setting instead of insisting on motion. */
