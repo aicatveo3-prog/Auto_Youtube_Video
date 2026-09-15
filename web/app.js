@@ -38,6 +38,11 @@ function fmtNum(v) {
   return v.toLocaleString('ko-KR');
 }
 const commas = (n) => (n == null ? '—' : n.toLocaleString('ko-KR'));
+// yt-dlp stores upload_date as "YYYYMMDD"; show it as "YYYY.MM.DD".
+function fmtDate(d) {
+  if (!d || !/^\d{8}$/.test(d)) return '';
+  return `${d.slice(0, 4)}.${d.slice(4, 6)}.${d.slice(6, 8)}`;
+}
 
 let toastTimer;
 function toast(msg, isErr) {
@@ -656,6 +661,8 @@ async function loadReader(vid) {
   S.reader = d;
   $('#rd-title').textContent = d.title;
   const bits = [d.channel, `${commas(d.words)}단어`, fmtDur(d.duration)];
+  const up = fmtDate(d.upload_date);
+  if (up) bits.push(`업로드 ${up}`);
   if (d.caption_kind) bits.push(d.caption_kind);
   bits.push(d.path);
   $('#rd-meta').textContent = bits.filter(Boolean).join(' · ');
