@@ -726,6 +726,8 @@ function applyMode() {
   const showOrig = hasAny ? $('#rd-orig').checked : true;
   const mode = !hasAny ? 'orig' : (showOrig ? 'both' : 'primary');
   $('#rd-split-wrap').dataset.mode = mode;
+  // Lets CSS widen the column for the table-heavy 분석본 when it is shown alone.
+  $('#rd-split-wrap').dataset.primary = hasAny ? S.primary : '';
 
   $('#rd-orig-wrap').hidden = !hasAny;         // nothing to toggle without one
   $('#rd-orig-pane').hidden = mode === 'primary';
