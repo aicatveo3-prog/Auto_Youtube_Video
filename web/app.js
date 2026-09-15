@@ -852,13 +852,26 @@ async function writeClipboard(text, okMsg) {
  * nodes rather than innerHTML so model output can never inject markup.
  */
 function inline(parent, text) {
-  const re = /(\*\*[^*]+\*\*|`[^`]+`)/g;
+  const re = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g;
   let last = 0, m;
   while ((m = re.exec(text)) !== null) {
     if (m.index > last) parent.append(text.slice(last, m.index));
     const tok = m[0];
-    if (tok.startsWith('**')) parent.append(el('strong', null, tok.slice(2, -2)));
-    else parent.append(el('code', null, tok.slice(1, -1)));
+    if (tok.startsWith('**')) {
+      parent.append(el('strong', null, tok.slice(2, -2)));
+    } else if (tok.startsWith('`')) {
+      parent.append(el('code', null, tok.slice(1, -1)));
+    } else if (tok.startsWith('[')) {
+      // [label](url)
+      const lb = tok.indexOf('](');
+      const label = tok.slice(1, lb);
+      const url = tok.slice(lb + 2, -1);
+      const a = el('a', null, label);
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      parent.append(a);
+    }
     last = m.index + tok.length;
   }
   if (last < text.length) parent.append(text.slice(last));
