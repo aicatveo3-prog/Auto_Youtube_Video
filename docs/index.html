@@ -23,6 +23,7 @@
     <input id="gq" type="search" placeholder="모든 스크립트 검색" autocomplete="off">
     <button type="submit" class="ghost">검색</button>
   </form>
+  <a class="archived-link" href="#/archived" data-nav="archived">🗄 폐기된 목록</a>
 </header>
 
 <main>
@@ -95,7 +96,6 @@
       <p class="muted" id="cd-info"></p>
     </div>
     <button id="cd-prompts" class="ghost btn cd-prompts-btn" type="button">📝 정리본 프롬프트</button>
-    <button id="cd-analysis" class="ghost btn cd-analysis-btn" type="button">🔍 분석본 프롬프트</button>
   </div>
 
   <div class="tabbar" role="tablist">
@@ -178,10 +178,6 @@
     </label>
     <output id="rd-hits" class="count" aria-live="polite"></output>
     <span class="spacer"></span>
-    <div class="docswitch" id="rd-doc-switch" role="tablist" aria-label="문서 선택" hidden>
-      <button role="tab" type="button" class="docbtn" data-doc="clean">정리본</button>
-      <button role="tab" type="button" class="docbtn" data-doc="analysis">분석본</button>
-    </div>
     <label class="inline" id="rd-orig-wrap">
       <input id="rd-orig" type="checkbox"> 원본 함께 보기
     </label>
@@ -238,17 +234,6 @@
       <!-- 있을 때 -->
       <article id="cl-body" class="reader markdown" hidden></article>
     </div>
-
-    <!-- 분석본 -->
-    <div class="pane" id="rd-analysis-pane" hidden>
-      <div class="panehead">
-        <h3>분석본</h3>
-        <span class="muted small" id="an-meta"></span>
-        <span class="spacer"></span>
-        <button id="an-copy" class="ghost" hidden>복사</button>
-      </div>
-      <article id="an-body" class="reader markdown" hidden></article>
-    </div>
   </div>
 </section>
 
@@ -259,6 +244,15 @@
   <p class="muted tight" id="sr-info"></p>
   <div id="sr-list" class="list"></div>
   <p id="sr-none" class="muted center pad" hidden></p>
+</section>
+
+<!-- ══ 폐기된 목록 ════════════════════════════════════════ -->
+<section id="v-archived" class="view" hidden>
+  <a class="back" href="#/">← 라이브러리</a>
+  <h2 class="vh">폐기된 목록</h2>
+  <p class="muted tight">더 이상 사용하지 않지만 기록을 위해 보관하는 항목입니다. 지금은 폐기된 분석본 기능의 프롬프트가 들어 있습니다.</p>
+  <div id="arch-list" class="arch-wrap"></div>
+  <p id="arch-none" class="muted center pad" hidden>보관된 항목이 없습니다.</p>
 </section>
 
 </main>
