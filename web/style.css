@@ -546,6 +546,7 @@ mark {
   color: var(--muted);
 }
 .markdown strong { color: #fff; font-weight: 600; }
+.markdown em { color: var(--muted); font-style: italic; }
 .markdown code {
   background: var(--bg); border: 1px solid var(--line-soft);
   border-radius: var(--r0); padding: 0 var(--s1); font-size: .88em;
@@ -612,6 +613,60 @@ mark {
   white-space: pre-wrap; word-break: break-word;
   font-size: var(--t2); line-height: 1.7;
 }
+
+/* ═══ 읽을거리(아티클) ══════════════════════════════════════ */
+
+/* Reader → article: a title button on the right of the reader toolbar. */
+.article-btn {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+  max-width: 22em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.article-btn:hover { background: color-mix(in srgb, var(--accent) 26%, transparent); text-decoration: none; }
+
+/* Channel → article: the "읽을거리" section above the video list. */
+.cd-articles { margin: var(--s2) 0 var(--s5); }
+.cd-articles-h {
+  margin: 0 0 var(--s2); font-size: var(--t2); font-weight: 600;
+  color: var(--muted); text-transform: uppercase; letter-spacing: .04em;
+}
+.art-cards { display: flex; flex-direction: column; gap: var(--s2); }
+.art-card {
+  display: flex; align-items: center; gap: var(--s3);
+  background: var(--surface); border-radius: var(--r2);
+  padding: var(--s3) var(--s4); box-shadow: var(--e1);
+  border: 1px solid transparent; transition: border-color .15s var(--ease);
+}
+.art-card:hover { border-color: var(--accent-dim); text-decoration: none; }
+.art-ico { font-size: var(--t5); line-height: 1; flex: none; }
+.art-card-body { min-width: 0; }
+.art-card-title { font-weight: 600; color: var(--text); }
+.art-card-sub { margin-top: 2px; }
+
+/* Article page. */
+.art-page { max-width: 52em; margin: 0 auto; }
+.art-h { margin-bottom: var(--s1); }
+.art-sub { margin: 0 0 var(--s4); color: var(--muted); font-size: var(--t4); }
+.art-related {
+  background: var(--surface); border-radius: var(--r2);
+  padding: var(--s3) var(--s4); margin-bottom: var(--s5);
+  box-shadow: var(--e1); border-left: 3px solid var(--accent);
+}
+.art-related-label {
+  font-size: var(--t1); font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .04em; margin-bottom: var(--s2);
+}
+.relvid {
+  display: flex; align-items: center; gap: var(--s3);
+  padding: var(--s2); border-radius: var(--r1);
+  transition: background .15s var(--ease);
+}
+.relvid:hover { background: var(--raised); text-decoration: none; }
+.relvid-thumb { width: 120px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--r1); flex: none; }
+.relvid-info { min-width: 0; }
+.relvid-title { font-weight: 600; color: var(--text); }
+.relvid-sub { margin-top: 2px; }
 
 /* ═══ progress, skeleton, misc ══════════════════════════════ */
 .progress {

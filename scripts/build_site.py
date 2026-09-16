@@ -25,6 +25,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CHANNELS = ROOT / "channels"
 TRANSCRIPTS = ROOT / "transcripts"
 PROMPTS = ROOT / "prompts"
+ARTICLES = ROOT / "articles"
 WEB = ROOT / "web"
 DOCS = ROOT / "docs"
 DATA = DOCS / "data"
@@ -154,6 +155,44 @@ def build_archived_prompts() -> list[dict]:
     return _read_prompt_dir(PROMPTS / "archived")
 
 
+def read_articles() -> list[dict]:
+    """Standalone 읽을거리(기획글) — long-form essays that are NOT YouTube
+    transcripts. Each carries a related-video list so an article and a video can
+    link to each other both ways."""
+    out = []
+    if ARTICLES.is_dir():
+        for p in sorted(ARTICLES.glob("*.md")):
+            meta, body = split_front_matter(p.read_text(encoding="utf-8"))
+            related = [r for r in re.split(r"[,\s]+", meta.get("related", "")) if r]
+            out.append({
+                "slug": p.stem,
+                "title": meta.get("title") or p.stem,
+                "subtitle": meta.get("subtitle", ""),
+                "channel_key": meta.get("channel_key", ""),
+                "related": related,
+                "generated": meta.get("generated", ""),
+                "chars": len(body.strip()),
+                "text": body.strip(),
+            })
+    return out
+
+
+def _video_brief(vid: str, blobs_by_key: dict, owner: dict) -> dict:
+    """Just enough about a video to render a link card to it."""
+    m = read_meta(vid)
+    key = owner.get(vid)
+    channel = ""
+    if key and key in blobs_by_key:
+        channel = blobs_by_key[key].get("channel") or ""
+    return {
+        "id": vid,
+        "title": m.get("title") or vid,
+        "channel": channel or m.get("channel") or "",
+        "channel_key": key,
+        "thumb": f"https://i.ytimg.com/vi/{vid}/mqdefault.jpg",
+    }
+
+
 # --------------------------------------------------------------------------- #
 # builders
 # --------------------------------------------------------------------------- #
@@ -229,7 +268,7 @@ def build_channel(key, blob, have, cleaned, local) -> dict:
     return blob
 
 
-def build_video(vid, owner) -> dict:
+def build_video(vid, owner, art_by_vid=None) -> dict:
     m = read_meta(vid)
     return {
         "id": vid,
@@ -247,6 +286,8 @@ def build_video(vid, owner) -> dict:
         "text": plain_text(vid),
         # Folded in so the reader needs a single request per video.
         "clean": read_clean(vid),
+        # 읽을거리(아티클) linked to this video, for the reader's link button.
+        "articles": (art_by_vid or {}).get(vid, []),
     }
 
 
@@ -298,11 +339,22 @@ def main() -> int:
     local = {v: local_info(v) for v in have}
     owner = owner_index(blobs)
 
+    # 읽을거리(아티클): resolve related videos and index them by video id so a
+    # video's JSON can advertise the articles that link to it.
+    articles = read_articles()
+    blobs_by_key = {k: b for k, b in blobs}
+    art_by_vid: dict[str, list] = {}
+    for a in articles:
+        for vid in a["related"]:
+            art_by_vid.setdefault(vid, []).append(
+                {"slug": a["slug"], "title": a["title"]})
+
     # Rebuild data from scratch so deletions do not leave stale files behind.
     if DATA.exists():
         shutil.rmtree(DATA)
     (DATA / "ch").mkdir(parents=True, exist_ok=True)
     (DATA / "v").mkdir(parents=True, exist_ok=True)
+    (DATA / "art").mkdir(parents=True, exist_ok=True)
 
     total = 0
     total += write_json(DATA / "library.json",
@@ -311,12 +363,25 @@ def main() -> int:
     total += write_json(DATA / "prompts.json", build_prompts())
     total += write_json(DATA / "archived.json", build_archived_prompts())
 
+    # Per-article JSON (full text + resolved related videos) and a small index.
+    for a in articles:
+        full = dict(a)
+        full["channel"] = blobs_by_key.get(a["channel_key"], {}).get("channel", "")
+        full["related_videos"] = [
+            _video_brief(vid, blobs_by_key, owner) for vid in a["related"]]
+        total += write_json(DATA / "art" / f"{a['slug']}.json", full)
+    total += write_json(DATA / "articles.json", [
+        {"slug": a["slug"], "title": a["title"], "subtitle": a["subtitle"],
+         "channel_key": a["channel_key"], "related": a["related"]}
+        for a in articles])
+
     for key, blob in blobs:
         total += write_json(DATA / "ch" / f"{key}.json",
                            build_channel(key, blob, have, cleaned, local))
 
     for vid in sorted(have):
-        total += write_json(DATA / "v" / f"{vid}.json", build_video(vid, owner))
+        total += write_json(DATA / "v" / f"{vid}.json",
+                           build_video(vid, owner, art_by_vid))
 
     # One flat index for client-side full-text search.
     search = []
@@ -341,7 +406,7 @@ def main() -> int:
     copy_assets()
 
     print(f"built docs/ : 채널 {len(blobs)} · 영상 {len(have)} · 정리본 {len(cleaned)} "
-          f"· data {total/1024/1024:.1f} MB")
+          f"· 읽을거리 {len(articles)} · data {total/1024/1024:.1f} MB")
     return 0
 
 

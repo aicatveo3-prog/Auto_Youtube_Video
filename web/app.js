@@ -22,6 +22,7 @@ const S = {
   poll: null,
   reader: null,       // loaded transcript
   clean: null,        // loaded 정리본
+  article: null,      // loaded 읽을거리 slug
 };
 
 /* ── helpers ────────────────────────────────────────────── */
@@ -127,6 +128,15 @@ async function staticApi(path, opts) {
       const list = await getJSON('data/prompts.json');
       return list.find((p) => p.key === key) || { error: 'not found' };
     } catch { return { error: 'not found' }; }
+  }
+  if (route === '/api/articles') {
+    try { return { articles: await getJSON('data/articles.json') }; }
+    catch { return { articles: [] }; }
+  }
+  if (route.startsWith('/api/article/')) {
+    const slug = route.slice('/api/article/'.length);
+    try { return await getJSON(`data/art/${slug}.json`); }
+    catch { return { error: 'not found' }; }
   }
   return {};
 }
@@ -300,7 +310,7 @@ function highlight(container, text, needle) {
 }
 
 /* ── router ─────────────────────────────────────────────── */
-const VIEWS = ['library', 'add', 'channel', 'video', 'search', 'archived'];
+const VIEWS = ['library', 'add', 'channel', 'video', 'search', 'archived', 'article'];
 function show(name) {
   VIEWS.forEach((v) => { $('#v-' + v).hidden = v !== name; });
   $$('[data-nav]').forEach((a) =>
@@ -322,6 +332,7 @@ async function route() {
       await runSearch(q);
     }
     else if (head === 'archived') { show('archived'); await loadArchived(); }
+    else if (head === 'article' && arg) { show('article'); await loadArticle(arg); }
     else { location.hash = '#/'; }
   } catch (e) {
     toast(e.message, true);
@@ -423,7 +434,35 @@ async function loadChannel(key) {
   $$('.tabbtn').forEach((b) => b.classList.toggle('on', b.dataset.ct === S.ctab));
   S.limit = PAGE;
   renderChannel();
+  await renderChannelArticles(key);
   await resumeJob();
+}
+
+/*
+ * 읽을거리(기획글) that belong to this channel, shown as a small section above
+ * the video list. Clicking one opens the article page.
+ */
+async function renderChannelArticles(key) {
+  const wrap = $('#cd-articles');
+  const list = $('#cd-articles-list');
+  list.textContent = '';
+  let arts = [];
+  try { arts = (await api('/api/articles')).articles || []; } catch { arts = []; }
+  const mine = arts.filter((a) => a.channel_key === key);
+  wrap.hidden = mine.length === 0;
+  mine.forEach((a) => {
+    const card = el('a', 'art-card');
+    card.href = `#/article/${encodeURIComponent(a.slug)}`;
+    card.append(el('span', 'art-ico', '📄'));
+    const body = el('div', 'art-card-body');
+    body.append(el('div', 'art-card-title', a.title));
+    const sub = [];
+    if (a.subtitle) sub.push(a.subtitle);
+    if (a.related?.length) sub.push(`연관 영상 ${a.related.length}개`);
+    if (sub.length) body.append(el('div', 'art-card-sub muted small', sub.join(' · ')));
+    card.append(body);
+    list.append(card);
+  });
 }
 
 /*
@@ -677,6 +716,18 @@ async function loadReader(vid) {
   $('#rd-yt').href = `https://www.youtube.com/watch?v=${d.id}`;
   $('#rd-back').href = d.channel_key ? `#/channel/${d.channel_key}` : '#/';
   $('#rd-back').textContent = d.channel_key ? `← ${d.channel}` : '← 라이브러리';
+
+  // Linked 읽을거리(아티클): a title button on the right that opens the article.
+  const artBtn = $('#rd-article');
+  const art = (d.articles || [])[0];
+  if (art) {
+    artBtn.textContent = `📄 ${art.title}`;
+    artBtn.href = `#/article/${encodeURIComponent(art.slug)}`;
+    artBtn.hidden = false;
+  } else {
+    artBtn.hidden = true;
+  }
+
   $('#rd-find').value = '';
   $('#rd-hits').textContent = '';
   $('#rd-orig').checked = false;
@@ -806,13 +857,15 @@ async function writeClipboard(text, okMsg) {
  * nodes rather than innerHTML so model output can never inject markup.
  */
 function inline(parent, text) {
-  const re = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g;
+  const re = /(\*\*[^*]+\*\*|\*[^*\n]+\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g;
   let last = 0, m;
   while ((m = re.exec(text)) !== null) {
     if (m.index > last) parent.append(text.slice(last, m.index));
     const tok = m[0];
     if (tok.startsWith('**')) {
       parent.append(el('strong', null, tok.slice(2, -2)));
+    } else if (tok.startsWith('*')) {
+      parent.append(el('em', null, tok.slice(1, -1)));
     } else if (tok.startsWith('`')) {
       parent.append(el('code', null, tok.slice(1, -1)));
     } else if (tok.startsWith('[')) {
@@ -1232,6 +1285,55 @@ async function loadArchived() {
 
     host.append(card);
   });
+}
+
+/* ── 읽을거리(아티클) ────────────────────────────────────── */
+/*
+ * A standalone long-form article. It carries a prominent "연관된 영상" card so
+ * the link back to the source video is always clear, completing the two-way
+ * connection (video → article button, article → related video card).
+ */
+async function loadArticle(slug) {
+  const body = $('#ar-body');
+  if (S.article !== slug) { body.textContent = ''; skeleton(body, 6); }
+  S.article = slug;
+
+  const d = await api(`/api/article/${encodeURIComponent(slug)}`);
+  if (d.error) { toast('글을 찾을 수 없습니다.', true); location.hash = '#/'; return; }
+
+  $('#ar-title').textContent = d.title;
+  $('#ar-sub').textContent = d.subtitle || '';
+  $('#ar-sub').hidden = !d.subtitle;
+
+  const back = $('#ar-back');
+  if (d.channel_key) {
+    back.href = `#/channel/${encodeURIComponent(d.channel_key)}`;
+    back.textContent = `← ${d.channel || '채널'}`;
+  } else {
+    back.href = '#/';
+    back.textContent = '← 라이브러리';
+  }
+
+  // 연관된 영상 — the link back to the source video(s).
+  const relWrap = $('#ar-related');
+  const relList = $('#ar-related-list');
+  relList.textContent = '';
+  const vids = d.related_videos || [];
+  relWrap.hidden = vids.length === 0;
+  vids.forEach((v) => {
+    const a = el('a', 'relvid');
+    a.href = `#/video/${v.id}`;
+    const img = el('img', 'relvid-thumb');
+    img.src = v.thumb; img.alt = ''; img.loading = 'lazy';
+    const info = el('div', 'relvid-info');
+    info.append(el('div', 'relvid-title', v.title));
+    const sub = [v.channel, '이 글과 연관된 영상'].filter(Boolean).join(' · ');
+    info.append(el('div', 'relvid-sub muted small', sub));
+    a.append(img, info);
+    relList.append(a);
+  });
+
+  renderMarkdown(body, d.text);
 }
 
 /* ── wiring ─────────────────────────────────────────────── */

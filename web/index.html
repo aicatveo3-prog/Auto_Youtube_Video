@@ -97,6 +97,11 @@
     <button id="cd-prompts" class="ghost btn cd-prompts-btn" type="button">📝 정리본 프롬프트</button>
   </div>
 
+  <section id="cd-articles" class="cd-articles" hidden>
+    <h3 class="cd-articles-h">📄 읽을거리</h3>
+    <div id="cd-articles-list" class="art-cards"></div>
+  </section>
+
   <div class="tabbar" role="tablist">
     <button role="tab" class="tabbtn on" data-ct="all">전체 <span></span></button>
     <button role="tab" class="tabbtn" data-ct="done">추출됨 <span></span></button>
@@ -180,6 +185,7 @@
     <label class="inline" id="rd-orig-wrap">
       <input id="rd-orig" type="checkbox"> 원본 함께 보기
     </label>
+    <a id="rd-article" class="btn article-btn" hidden></a>
     <a id="rd-yt" class="ghost btn" target="_blank" rel="noopener noreferrer">유튜브에서 보기</a>
   </div>
 
@@ -252,6 +258,23 @@
   <p class="muted tight">더 이상 사용하지 않지만 기록을 위해 보관하는 항목입니다. 지금은 폐기된 분석본 기능의 프롬프트가 들어 있습니다.</p>
   <div id="arch-list" class="arch-wrap"></div>
   <p id="arch-none" class="muted center pad" hidden>보관된 항목이 없습니다.</p>
+</section>
+
+<!-- ══ 읽을거리(아티클) ═══════════════════════════════════ -->
+<section id="v-article" class="view" hidden>
+  <a class="back" id="ar-back" href="#/">← 라이브러리</a>
+  <div class="art-page">
+    <h2 class="vh art-h" id="ar-title"></h2>
+    <p class="art-sub" id="ar-sub" hidden></p>
+
+    <!-- 연관된 영상 — 원본 영상으로 돌아가는 연결고리 -->
+    <div class="art-related" id="ar-related" hidden>
+      <div class="art-related-label">🎬 연관된 영상</div>
+      <div id="ar-related-list"></div>
+    </div>
+
+    <article id="ar-body" class="reader markdown"></article>
+  </div>
 </section>
 
 </main>
