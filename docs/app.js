@@ -908,6 +908,19 @@ function renderMarkdown(container, md) {
 
     if (!line.trim()) { i++; continue; }
 
+    // Fenced code block ``` ... ``` — kept verbatim in a <pre> so ASCII
+    // diagrams (whitespace alignment, line breaks) survive intact.
+    if (/^\s*```/.test(line)) {
+      i++;
+      const buf = [];
+      while (i < lines.length && !/^\s*```/.test(lines[i])) { buf.push(lines[i]); i++; }
+      if (i < lines.length) i++;                 // skip the closing fence
+      const pre = el('pre', 'codeblock');
+      pre.textContent = buf.join('\n');
+      container.append(pre);
+      continue;
+    }
+
     const h = line.match(/^(#{1,4})\s+(.*)$/);
     if (h) {
       const node = el('h' + Math.min(h[1].length + 1, 5));

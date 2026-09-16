@@ -552,6 +552,13 @@ mark {
 }
 .markdown strong { color: #fff; font-weight: 600; }
 .markdown em { color: var(--muted); font-style: italic; }
+.markdown pre.codeblock {
+  margin: 1.4em 0; padding: var(--s3) var(--s4);
+  background: var(--bg); border: 1px solid var(--line-soft); border-radius: var(--r1);
+  overflow-x: auto; white-space: pre;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--t2); line-height: 1.6; color: var(--muted);
+}
 .markdown code {
   background: var(--bg); border: 1px solid var(--line-soft);
   border-radius: var(--r0); padding: 0 var(--s1); font-size: .88em;
