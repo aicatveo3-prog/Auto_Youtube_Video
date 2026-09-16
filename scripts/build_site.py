@@ -203,7 +203,7 @@ def write_json(path: Path, obj) -> int:
     return len(text.encode("utf-8"))
 
 
-def build_library(blobs, have, cleaned, metas) -> dict:
+def build_library(blobs, have, cleaned, art_by_vid, metas) -> dict:
     owner = owner_index(blobs)
     channels, claimed = [], set()
     for key, blob in blobs:
@@ -236,6 +236,7 @@ def build_library(blobs, have, cleaned, metas) -> dict:
             "channel_id": m.get("channel_id") or "",
             "words": m.get("words"), "duration": m.get("duration_sec"),
             "clean": vid in cleaned,
+            "article": vid in art_by_vid,
             "thumb": f"https://i.ytimg.com/vi/{vid}/mqdefault.jpg",
         })
     loose.sort(key=lambda v: -(v["words"] or 0))
@@ -253,7 +254,7 @@ def build_library(blobs, have, cleaned, metas) -> dict:
     }
 
 
-def build_channel(key, blob, have, cleaned, local) -> dict:
+def build_channel(key, blob, have, cleaned, art_by_vid, local) -> dict:
     # Same enrichment the /api/channel endpoint did. No failure state on the
     # static site (retrying is a write action), so 'fail' is left blank.
     for v in blob.get("videos", []):
@@ -263,6 +264,7 @@ def build_channel(key, blob, have, cleaned, local) -> dict:
         v["local_lang"] = local.get(vid, {}).get("lang")
         v["local_date"] = local.get(vid, {}).get("date", "")
         v["clean"] = vid in cleaned
+        v["article"] = vid in art_by_vid
         v.setdefault("access", "public")
         v["fail"] = ""
     return blob
@@ -358,7 +360,7 @@ def main() -> int:
 
     total = 0
     total += write_json(DATA / "library.json",
-                        build_library(blobs, have, cleaned, metas))
+                        build_library(blobs, have, cleaned, art_by_vid, metas))
 
     total += write_json(DATA / "prompts.json", build_prompts())
     total += write_json(DATA / "archived.json", build_archived_prompts())
@@ -377,7 +379,7 @@ def main() -> int:
 
     for key, blob in blobs:
         total += write_json(DATA / "ch" / f"{key}.json",
-                           build_channel(key, blob, have, cleaned, local))
+                           build_channel(key, blob, have, cleaned, art_by_vid, local))
 
     for vid in sorted(have):
         total += write_json(DATA / "v" / f"{vid}.json",
