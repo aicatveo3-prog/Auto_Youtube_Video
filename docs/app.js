@@ -719,15 +719,24 @@ async function loadReader(vid) {
   $('#rd-back').href = d.channel_key ? `#/channel/${d.channel_key}` : '#/';
   $('#rd-back').textContent = d.channel_key ? `← ${d.channel}` : '← 라이브러리';
 
-  // Linked 읽을거리(아티클): a title button on the right that opens the article.
-  const artBtn = $('#rd-article');
-  const art = (d.articles || [])[0];
-  if (art) {
-    artBtn.textContent = `📄 ${art.title}`;
-    artBtn.href = `#/article/${encodeURIComponent(art.slug)}`;
-    artBtn.hidden = false;
-  } else {
-    artBtn.hidden = true;
+  // Linked 읽을거리(아티클): a labelled strip of chips above the reading
+  // controls. Scales to any number — chips wrap to the next line.
+  const readsWrap = $('#rd-reads');
+  const readsList = $('#rd-reads-list');
+  readsList.textContent = '';
+  const arts = d.articles || [];
+  readsWrap.hidden = arts.length === 0;
+  if (arts.length) {
+    $('#rd-reads-head').textContent =
+      arts.length > 1 ? `📄 관련 읽을거리 ${arts.length}` : '📄 관련 읽을거리';
+    arts.forEach((a) => {
+      const chip = el('a', 'read-chip');
+      chip.href = `#/article/${encodeURIComponent(a.slug)}`;
+      chip.append(el('span', 'read-chip-ico', '📄'));
+      chip.append(el('span', 'read-chip-title', a.title));
+      chip.append(el('span', 'read-chip-arrow', '›'));
+      readsList.append(chip);
+    });
   }
 
   $('#rd-find').value = '';

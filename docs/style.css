@@ -621,14 +621,33 @@ mark {
 
 /* ═══ 읽을거리(아티클) ══════════════════════════════════════ */
 
-/* Reader → article: a title button on the right of the reader toolbar. */
-.article-btn {
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  color: var(--accent);
-  border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
-  max-width: 22em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+/* Reader → article: a labelled "관련 읽을거리" strip of chips under the meta,
+   above the reading controls. Chips wrap, so any number of articles fit. */
+.rd-reads {
+  margin: var(--s3) 0 var(--s4); padding: var(--s3) var(--s4);
+  background: var(--surface); border-radius: var(--r2);
+  box-shadow: var(--e1); border-left: 3px solid var(--article);
 }
-.article-btn:hover { background: color-mix(in srgb, var(--accent) 26%, transparent); text-decoration: none; }
+.rd-reads-head {
+  font-size: var(--t1); font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .04em; margin-bottom: var(--s2);
+}
+.rd-reads-list { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.read-chip {
+  display: inline-flex; align-items: center; gap: var(--s2);
+  max-width: 100%; padding: var(--s2) var(--s3); border-radius: var(--r3);
+  background: color-mix(in srgb, var(--article) 12%, transparent);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--article) 30%, transparent);
+  transition: background .15s var(--ease);
+}
+.read-chip:hover {
+  background: color-mix(in srgb, var(--article) 22%, transparent);
+  text-decoration: none;
+}
+.read-chip-ico { flex: none; }
+.read-chip-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.read-chip-arrow { flex: none; color: var(--article); font-weight: 700; }
 
 /* Channel → article: the "읽을거리" section above the video list. */
 .cd-articles { margin: var(--s2) 0 var(--s5); }
