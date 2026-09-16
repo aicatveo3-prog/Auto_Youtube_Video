@@ -398,6 +398,7 @@ function looseRow(v) {
   const right = el('div', 'right');
   right.append(el('span', 'badge local', '추출됨'));
   if (v.clean) right.append(el('span', 'badge clean', '정리본'));
+  if (v.article) right.append(el('span', 'badge article', '읽을거리'));
   const acts = el('div', 'acts');
   acts.append(actionBtn('read', '읽기', `#/video/${v.id}`));
   acts.append(actionBtn('yt', '유튜브',
@@ -643,6 +644,7 @@ function videoRow(v) {
       v.local_words ? `${commas(v.local_words)}단어` : '추출됨'));
   }
   if (v.clean) right.append(el('span', 'badge clean', '정리본'));
+  if (v.article) right.append(el('span', 'badge article', '읽을거리'));
 
   if (locked) {
     const b = el('span', 'badge members', '멤버십 전용');
