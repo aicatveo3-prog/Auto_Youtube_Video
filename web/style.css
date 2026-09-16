@@ -33,8 +33,6 @@
   --accent: #6cb0ff;
   --accent-dim: #21384f;
   --accent-ink: #06182b;
-  --analysis: #c39bf5;        /* 분석본: distinct from the 정리본 blue */
-  --analysis-dim: #3a2b52;
   --ok: #5fd08a;
   --warn: #e5b567;
   --err: #f08a8a;
@@ -136,6 +134,15 @@ a:hover { text-decoration: underline; }
 .nav nav a.on { color: var(--text); background: var(--raised); }
 .navsearch { display: flex; gap: var(--s2); margin-left: auto; }
 .navsearch input { width: 280px; }
+
+/* Retired-items link, parked at the far right of the nav. */
+.archived-link {
+  color: var(--muted); font-size: var(--t2); font-weight: 500;
+  padding: var(--s2) var(--s3); border-radius: var(--r1); white-space: nowrap;
+  transition: background .15s var(--ease), color .15s var(--ease);
+}
+.archived-link:hover { color: var(--text); background: var(--raised); text-decoration: none; }
+.archived-link.on { color: var(--text); background: var(--raised); }
 
 main { padding: var(--s5) var(--s5) var(--s7); max-width: 1240px; }
 .view { animation: rise .18s var(--ease); }
@@ -439,7 +446,6 @@ fieldset.tabs label { display: inline-flex; align-items: center; gap: var(--s1);
 }
 .badge.local, .badge.ok { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
 .badge.clean { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
-.badge.analysis { background: color-mix(in srgb, var(--analysis) 18%, transparent); color: var(--analysis); }
 .badge.no_captions, .badge.nocap {
   background: color-mix(in srgb, var(--warn) 15%, transparent); color: var(--warn);
 }
@@ -471,16 +477,10 @@ fieldset.tabs label { display: inline-flex; align-items: center; gap: var(--s1);
      orig  : no 정리본 yet, so 원본 gets the column           */
 .split { display: grid; gap: var(--s4); align-items: start; }
 .split[data-mode="both"] { grid-template-columns: 1fr 1fr; }
-.split[data-mode="primary"],
+.split[data-mode="clean"],
 .split[data-mode="orig"] {
   grid-template-columns: minmax(0, 48em);
   justify-content: center;
-}
-/* 분석본은 표가 많아 48em에 갇히면 셀이 짓눌린다. 단독으로 볼 때는 본문
-   영역(main, 1240px)을 꽉 채워 표가 숨 쉴 공간을 준다. 정리본·원본은 그대로. */
-.split[data-mode="primary"][data-primary="analysis"] {
-  grid-template-columns: minmax(0, 1fr);
-  justify-content: stretch;
 }
 /* With no 정리본 the hint belongs above the text, not beside it. */
 .split[data-mode="orig"] #rd-clean-pane { order: -1; }
@@ -515,26 +515,8 @@ fieldset.tabs label { display: inline-flex; align-items: center; gap: var(--s1);
 .reader p:last-child { margin-bottom: 0; }
 
 /* The 정리본 side gets a quiet accent edge so the two panes are
-   distinguishable without reading their headers. The 분석본 borrows the same
-   idea in its own hue. */
+   distinguishable without reading their headers. */
 #cl-body, #cl-empty { border-left: 2px solid var(--accent-dim); }
-#an-body { border-left: 2px solid var(--analysis-dim); }
-
-/* Segmented switch between 정리본 and 분석본 in the reader toolbar. */
-.docswitch {
-  display: inline-flex; gap: 2px; padding: 2px;
-  background: var(--raised); border-radius: var(--r3);
-}
-.docswitch .docbtn {
-  border: none; background: none; cursor: pointer;
-  color: var(--muted); font: inherit; font-size: var(--t1); font-weight: 500;
-  padding: var(--s1) var(--s3); border-radius: var(--r3);
-  white-space: nowrap; transition: background .15s var(--ease), color .15s var(--ease);
-}
-.docswitch .docbtn:hover { color: var(--text); }
-.docswitch .docbtn.on {
-  background: var(--surface); color: var(--text); box-shadow: var(--e1);
-}
 
 .empty-pane { display: flex; flex-direction: column; gap: var(--s2); font-size: var(--t2); }
 .empty-pane .toolbar { margin-top: var(--s3); margin-bottom: 0; }
@@ -615,6 +597,21 @@ mark {
   border-left: 2px solid var(--line);
 }
 .snip:last-child { margin-bottom: 0; }
+
+/* ═══ 폐기된 목록 ═══════════════════════════════════════════ */
+.arch-wrap { display: flex; flex-direction: column; gap: var(--s4); max-width: 60em; }
+.arch-card {
+  background: var(--surface); border-radius: var(--r2);
+  padding: var(--s4) var(--s5); box-shadow: var(--e1);
+}
+.arch-head { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s2); }
+.arch-title { margin: 0; font-size: var(--t4); font-weight: 600; }
+.arch-desc { margin: 0 0 var(--s3); }
+.arch-text {
+  margin: 0; max-height: 60vh; overflow: auto;
+  white-space: pre-wrap; word-break: break-word;
+  font-size: var(--t2); line-height: 1.7;
+}
 
 /* ═══ progress, skeleton, misc ══════════════════════════════ */
 .progress {
