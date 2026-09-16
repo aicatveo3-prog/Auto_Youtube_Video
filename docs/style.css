@@ -33,6 +33,7 @@
   --accent: #6cb0ff;
   --accent-dim: #21384f;
   --accent-ink: #06182b;
+  --article: #c39bf5;         /* 읽을거리: 정리본(파랑)과 구분되는 보라 */
   --ok: #5fd08a;
   --warn: #e5b567;
   --err: #f08a8a;
@@ -447,8 +448,8 @@ fieldset.tabs label { display: inline-flex; align-items: center; gap: var(--s1);
 .badge.local, .badge.ok { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
 .badge.clean { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
 .badge.article {
-  background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 34%, transparent);
+  background: color-mix(in srgb, var(--article) 18%, transparent); color: var(--article);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--article) 34%, transparent);
 }
 .badge.no_captions, .badge.nocap {
   background: color-mix(in srgb, var(--warn) 15%, transparent); color: var(--warn);
