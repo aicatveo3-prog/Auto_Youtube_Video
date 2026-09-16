@@ -23,6 +23,7 @@ const S = {
   reader: null,       // loaded transcript
   clean: null,        // loaded 정리본
   article: null,      // loaded 읽을거리 slug
+  articleDoc: null,   // loaded 읽을거리 full doc (for 전체 복사)
 };
 
 /* ── helpers ────────────────────────────────────────────── */
@@ -1324,6 +1325,7 @@ async function loadArticle(slug) {
 
   const d = await api(`/api/article/${encodeURIComponent(slug)}`);
   if (d.error) { toast('글을 찾을 수 없습니다.', true); location.hash = '#/'; return; }
+  S.articleDoc = d;                 // kept so 전체 복사 can read the full text
 
   $('#ar-title').textContent = d.title;
   $('#ar-sub').textContent = d.subtitle || '';
@@ -1410,6 +1412,13 @@ $('#sel-none').addEventListener('click', () => {
 });
 
 $('#rd-copy').addEventListener('click', () => writeClipboard(S.reader?.text));
+$('#ar-copy').addEventListener('click', () => {
+  const d = S.articleDoc;
+  if (!d) return;
+  const head = [d.title, d.subtitle].filter(Boolean).join('\n');
+  const text = `${head}\n\n${d.text || ''}`;
+  writeClipboard(text, `글 전체 복사 · ${commas(text.length)}자`);
+});
 $('#cl-copy').addEventListener('click', () => writeClipboard(S.clean?.text));
 $('#cl-copyprompt').addEventListener('click', copyPromptAndText);
 $('#cl-drop').addEventListener('click', dropClean);

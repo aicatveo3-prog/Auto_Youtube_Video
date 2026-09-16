@@ -677,6 +677,9 @@ mark {
 
 /* Article page. */
 .art-page { max-width: 52em; margin: 0 auto; }
+.art-topbar { display: flex; align-items: flex-start; gap: var(--s3); }
+.art-heads { flex: 1 1 auto; min-width: 0; }
+.art-copy { flex: none; margin-top: var(--s1); }
 .art-h { margin-bottom: var(--s1); }
 .art-sub { margin: 0 0 var(--s4); color: var(--muted); font-size: var(--t4); }
 .art-related {
