@@ -2144,7 +2144,7 @@
    "tab": "videos",
    "access": "public",
    "thumb": "https://i.ytimg.com/vi/fpSbAKa_2CI/mqdefault.jpg",
-   "checked": true
+   "checked": false
   },
   {
    "id": "DW17e4ws46w",
@@ -2154,7 +2154,7 @@
    "tab": "videos",
    "access": "public",
    "thumb": "https://i.ytimg.com/vi/DW17e4ws46w/mqdefault.jpg",
-   "checked": true
+   "checked": false
   },
   {
    "id": "sUIYq_e5Rho",
