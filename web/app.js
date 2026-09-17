@@ -312,16 +312,37 @@ function highlight(container, text, needle) {
 
 /* ── router ─────────────────────────────────────────────── */
 const VIEWS = ['library', 'add', 'channel', 'video', 'search', 'archived', 'article'];
+
+/*
+ * Scroll memory.
+ *
+ * This is a hash-routed single page: every view shares one scrolling document,
+ * so leaving a long channel list to read a video and coming back used to snap
+ * to the top. We remember scrollY per hash when the hash changes, then restore
+ * it once the destination view has rendered. A hash we have never parked at
+ * (a fresh forward navigation) simply lands at the top.
+ */
+const scrollMem = new Map();
+let curHash = null;
+
+function restoreScroll(h) {
+  const y = scrollMem.get(h) || 0;
+  // Two frames: one for the view swap, one for the freshly appended rows to lay
+  // out, so the target offset actually exists before we jump to it.
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => window.scrollTo(0, y)));
+}
+
 function show(name) {
   VIEWS.forEach((v) => { $('#v-' + v).hidden = v !== name; });
   $$('[data-nav]').forEach((a) =>
     a.classList.toggle('on', a.dataset.nav === name));
-  window.scrollTo(0, 0);
 }
 
 async function route() {
   const h = location.hash.replace(/^#/, '') || '/';
   const [, head, arg] = h.match(/^\/([^/?]*)\/?([^?]*)/) || [, '', ''];
+  let ok = true;
   try {
     if (head === '' ) { show('library'); await loadLibrary(); }
     else if (head === 'add') { show('add'); }
@@ -334,10 +355,15 @@ async function route() {
     }
     else if (head === 'archived') { show('archived'); await loadArchived(); }
     else if (head === 'article' && arg) { show('article'); await loadArticle(arg); }
-    else { location.hash = '#/'; }
+    else { ok = false; location.hash = '#/'; }
   } catch (e) {
+    ok = false;
     toast(e.message, true);
   }
+  // Only track and restore for a view that actually rendered. Restoring after
+  // the awaits above means the content is in the DOM and tall enough to reach
+  // the saved offset.
+  if (ok) { curHash = h; restoreScroll(h); }
 }
 
 /* ── library ────────────────────────────────────────────── */
@@ -1363,7 +1389,12 @@ async function loadArticle(slug) {
 }
 
 /* ── wiring ─────────────────────────────────────────────── */
-window.addEventListener('hashchange', route);
+// Park the current view's scroll position before the hash flips, so pressing
+// back later drops you where you left off instead of at the top.
+window.addEventListener('hashchange', () => {
+  if (curHash !== null) scrollMem.set(curHash, window.scrollY);
+  route();
+});
 
 $('#cd-prompts').addEventListener('click', () => openPromptModal());
 $('#pm-select').addEventListener('change', renderPromptText);
