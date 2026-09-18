@@ -1280,6 +1280,16 @@ async function openPromptModal() {
       const o = el('option', null, p.name);
       o.value = p.key; sel.append(o);
     });
+    // Opened from a channel page: default to that channel's own prompt
+    // (prompts are named cleanup-<채널명>), falling back to the generic one.
+    const chName = S.channel && S.channel.channel;
+    if (chName) {
+      const pref = list.find((p) => p.key === `cleanup-${chName}`)
+        || list.find((p) => p.key.startsWith('cleanup-')
+             && (p.key.slice('cleanup-'.length) === chName
+                 || (p.name && p.name.includes(chName))));
+      if (pref) sel.value = pref.key;
+    }
   }
 
   $('#pm-title').textContent = '정리본 프롬프트';
