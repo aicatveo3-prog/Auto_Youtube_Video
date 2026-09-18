@@ -1215,9 +1215,57 @@ async function runSearch(q) {
 }
 
 /* ── channel listing job ────────────────────────────────── */
+// Pull an 11-char video id out of a bare id or any common YouTube URL shape.
+// Returns null for channel handles/URLs, which fall through to channel listing.
+function parseVideoId(t) {
+  t = (t || '').trim();
+  if (/^[A-Za-z0-9_-]{11}$/.test(t)) return t;
+  const pats = [
+    /[?&]v=([A-Za-z0-9_-]{11})/, /youtu\.be\/([A-Za-z0-9_-]{11})/,
+    /\/shorts\/([A-Za-z0-9_-]{11})/, /\/embed\/([A-Za-z0-9_-]{11})/,
+    /\/live\/([A-Za-z0-9_-]{11})/,
+  ];
+  for (const p of pats) { const m = t.match(p); if (m) return m[1]; }
+  return null;
+}
+
+// Extract a single video directly (no channel listing). Reuses /api/extract.
+async function doExtractOne(vid) {
+  $('#btn-load').disabled = true;
+  $('#load-prog').hidden = false;
+  $('#load-bar').style.width = '15%';
+  $('#load-text').textContent = '영상 자막을 가져오는 중...';
+  try {
+    await jpost('/api/extract', { ids: [vid], lang: 'auto' });
+    poll(async (job) => {
+      $('#btn-load').disabled = false;
+      $('#load-bar').style.width = '100%';
+      const r = (job.results || {})[vid] || {};
+      $('#load-text').textContent = job.message || '';
+      if (r.state === 'ok' || r.state === 'cached') {
+        toast('영상 추출 완료');
+        location.hash = `#/video/${encodeURIComponent(vid)}`;
+      } else if (r.state === 'no_captions') {
+        toast('이 영상에는 자막이 없습니다.', true);
+      } else {
+        toast(job.message || r.detail || '추출에 실패했습니다.', true);
+      }
+    }, (job) => {
+      $('#load-text').textContent = `영상 자막을 가져오는 중... ${job.elapsed}초`;
+    });
+  } catch (e) {
+    $('#btn-load').disabled = false;
+    $('#load-prog').hidden = true;
+    toast(e.message, true);
+  }
+}
+
 async function doLoad() {
   const target = $('#target').value.trim();
-  if (!target) { toast('채널을 입력하세요.', true); return; }
+  if (!target) { toast('채널 또는 영상 URL을 입력하세요.', true); return; }
+  // A single video URL/ID extracts that one video instead of listing a channel.
+  const vid = parseVideoId(target);
+  if (vid) { doExtractOne(vid); return; }
   const tabs = $$('.tab:checked').map((c) => c.value);
   if (!tabs.length) { toast('탭을 하나 이상 선택하세요.', true); return; }
 
