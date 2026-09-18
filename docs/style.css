@@ -882,3 +882,52 @@ body.modal-open { overflow: hidden; }
   }
   .ccard:hover { transform: none; }
 }
+
+/* ═══ reader → captured stills (프레임 캡쳐) ═════════════════
+   Same card treatment as the 읽을거리 strip, with the accent edge since these
+   frames belong to this video. Thumbnails wrap into a responsive grid. */
+.rd-shots {
+  margin: var(--s3) 0 var(--s4); padding: var(--s3) var(--s4);
+  background: var(--surface); border-radius: var(--r2);
+  box-shadow: var(--e1); border-left: 3px solid var(--accent);
+}
+.rd-shots-head {
+  font-size: var(--t1); font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .04em; margin-bottom: var(--s3);
+}
+.rd-shots-grid {
+  display: grid; gap: var(--s3);
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+.shot {
+  margin: 0; border-radius: var(--r1); overflow: hidden;
+  background: var(--bg); border: 1px solid var(--line);
+  cursor: pointer; transition: border-color .15s var(--ease), transform .15s var(--ease);
+}
+.shot:hover { border-color: var(--accent); transform: translateY(-2px); }
+.shot img {
+  display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover;
+  background: var(--raised);
+}
+.shot-cap {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: var(--s2) var(--s3); font-size: var(--t1);
+}
+.shot-t { color: var(--accent); font-weight: 600; font-variant-numeric: tabular-nums; }
+.shot-label { color: var(--muted); line-height: 1.4; }
+
+/* Full-size viewer. Click anywhere (or Esc) to close. */
+.lightbox {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--s3); padding: var(--s5);
+  background: rgba(4, 6, 10, .92); cursor: zoom-out;
+}
+.lightbox img {
+  max-width: 95vw; max-height: 85vh; object-fit: contain;
+  border-radius: var(--r1); box-shadow: var(--e1);
+}
+.lightbox-cap {
+  color: var(--text); font-size: var(--t2); text-align: center;
+  max-width: 90vw;
+}

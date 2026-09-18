@@ -766,11 +766,48 @@ async function loadReader(vid) {
     });
   }
 
+  renderShots(d.frames || []);
+
   $('#rd-find').value = '';
   $('#rd-hits').textContent = '';
   $('#rd-orig').checked = false;
   paintReader('');
   await loadClean(d.id);          // sets S.clean, then applyMode uses it
+}
+
+/* Captured stills: a labelled thumbnail grid. The online AI picks the moments
+ * (shots.json), the local machine grabs the frames (ytframes.py); here we just
+ * show whatever was captured. Click a thumb to see it full-size. */
+function renderShots(frames) {
+  const wrap = $('#rd-shots');
+  const grid = $('#rd-shots-grid');
+  grid.textContent = '';
+  wrap.hidden = !frames.length;
+  if (!frames.length) return;
+  $('#rd-shots-head').textContent =
+    frames.length > 1 ? `🖼️ 캡쳐한 화면 ${frames.length}` : '🖼️ 캡쳐한 화면';
+  frames.forEach((f) => {
+    const fig = el('figure', 'shot');
+    const img = el('img');
+    img.src = f.url; img.alt = f.label || f.t; img.loading = 'lazy';
+    fig.append(img);
+    const cap = el('figcaption', 'shot-cap');
+    if (f.t) cap.append(el('span', 'shot-t', f.t));
+    if (f.label) cap.append(el('span', 'shot-label', f.label));
+    fig.append(cap);
+    fig.addEventListener('click', () => openLightbox(f));
+    grid.append(fig);
+  });
+}
+
+function openLightbox(f) {
+  $('#lightbox-img').src = f.url;
+  $('#lightbox-cap').textContent = [f.t, f.label].filter(Boolean).join('  ·  ');
+  $('#lightbox').hidden = false;
+}
+function closeLightbox() {
+  $('#lightbox').hidden = true;
+  $('#lightbox-img').src = '';
 }
 
 /*
@@ -1418,7 +1455,10 @@ $('#prompt-modal').addEventListener('click', (e) => {
 });
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !$('#prompt-modal').hidden) closePromptModal();
+  if (e.key === 'Escape' && !$('#lightbox').hidden) closeLightbox();
 });
+
+$('#lightbox').addEventListener('click', closeLightbox);
 
 $('#gsearch').addEventListener('submit', (e) => {
   e.preventDefault();
