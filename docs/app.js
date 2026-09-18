@@ -795,15 +795,37 @@ function renderShots(frames) {
     if (f.t) cap.append(el('span', 'shot-t', f.t));
     if (f.label) cap.append(el('span', 'shot-label', f.label));
     fig.append(cap);
-    fig.addEventListener('click', () => openLightbox(f));
+    fig.addEventListener('click', () => openLightbox(frames, i));
     grid.append(fig);
   });
 }
 
-function openLightbox(f) {
-  $('#lightbox-img').src = f.url;
-  $('#lightbox-cap').textContent = [f.t, f.label].filter(Boolean).join('  ·  ');
+// Lightbox holds the whole frame list so arrow keys / buttons can page through.
+let _lbFrames = [];
+let _lbIdx = 0;
+
+function openLightbox(frames, idx) {
+  _lbFrames = frames || [];
+  _lbIdx = idx || 0;
+  paintLightbox();
   $('#lightbox').hidden = false;
+}
+function paintLightbox() {
+  const n = _lbFrames.length;
+  if (!n) return;
+  const f = _lbFrames[_lbIdx];
+  $('#lightbox-img').src = f.url;
+  const bits = [`${_lbIdx + 1} / ${n}`, f.t, f.label].filter(Boolean);
+  $('#lightbox-cap').textContent = bits.join('  ·  ');
+  const one = n <= 1;
+  $('#lb-prev').hidden = one;
+  $('#lb-next').hidden = one;
+}
+function lbStep(delta) {
+  const n = _lbFrames.length;
+  if (n <= 1) return;
+  _lbIdx = (_lbIdx + delta + n) % n;   // wrap around both ends
+  paintLightbox();
 }
 function closeLightbox() {
   $('#lightbox').hidden = true;
@@ -1455,10 +1477,20 @@ $('#prompt-modal').addEventListener('click', (e) => {
 });
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !$('#prompt-modal').hidden) closePromptModal();
-  if (e.key === 'Escape' && !$('#lightbox').hidden) closeLightbox();
+  if (!$('#lightbox').hidden) {
+    if (e.key === 'Escape') closeLightbox();
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); lbStep(-1); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); lbStep(1); }
+  }
 });
 
+// Backdrop click closes; controls and the image itself must not bubble to it.
 $('#lightbox').addEventListener('click', closeLightbox);
+$('#lb-close').addEventListener('click', (e) => { e.stopPropagation(); closeLightbox(); });
+$('#lb-prev').addEventListener('click', (e) => { e.stopPropagation(); lbStep(-1); });
+$('#lb-next').addEventListener('click', (e) => { e.stopPropagation(); lbStep(1); });
+// Clicking the image advances to the next frame rather than closing.
+$('#lightbox-img').addEventListener('click', (e) => { e.stopPropagation(); lbStep(1); });
 
 $('#gsearch').addEventListener('submit', (e) => {
   e.preventDefault();

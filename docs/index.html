@@ -318,8 +318,13 @@
 
 <!-- ══ 캡쳐 이미지 크게 보기 ══════════════════════════════ -->
 <div id="lightbox" class="lightbox" hidden>
-  <img id="lightbox-img" alt="">
-  <div id="lightbox-cap" class="lightbox-cap"></div>
+  <button id="lb-close" class="lb-close" type="button" aria-label="닫기">✕</button>
+  <button id="lb-prev" class="lb-nav lb-prev" type="button" aria-label="이전 이미지">‹</button>
+  <figure class="lb-figure">
+    <img id="lightbox-img" alt="">
+    <figcaption id="lightbox-cap" class="lightbox-cap"></figcaption>
+  </figure>
+  <button id="lb-next" class="lb-nav lb-next" type="button" aria-label="다음 이미지">›</button>
 </div>
 
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
