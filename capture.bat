@@ -2,9 +2,10 @@
 REM ASCII only. cmd.exe reads .bat with the OEM codepage, so non-ASCII text
 REM here gets mangled. Korean output comes from the Python scripts instead.
 REM
-REM What this does: reads every transcripts\<id>\shots.json (written by the
-REM online AI), grabs those frames with yt-dlp + ffmpeg, rebuilds the site,
-REM and uploads. Run this by hand whenever the AI has added new capture lists.
+REM What this does: pulls the latest shots.json files (written by the online
+REM AI on GitHub), grabs those frames with yt-dlp + ffmpeg, rebuilds the site,
+REM and uploads. The GitHub sync runs FIRST so freshly-added capture lists are
+REM present before capture runs.
 
 cd /d "%~dp0"
 set PYTHONIOENCODING=utf-8
@@ -24,7 +25,18 @@ if errorlevel 1 (
   exit /b 1
 )
 
-echo === 1/5  Capturing frames from shots.json ===
+echo === 1/5  Syncing with GitHub (fetch the AI's shots.json) ===
+git fetch origin
+git rebase origin/main
+if errorlevel 1 (
+  git rebase --abort
+  echo [ERROR] Local changes clash with remote. Run push.bat or sync manually.
+  pause
+  exit /b 1
+)
+
+echo.
+echo === 2/5  Capturing frames from shots.json ===
 python scripts\ytframes.py sync
 if errorlevel 1 (
   echo [ERROR] Frame capture failed. See messages above.
@@ -33,20 +45,9 @@ if errorlevel 1 (
 )
 
 echo.
-echo === 2/5  Committing captured frames ===
+echo === 3/5  Committing captured frames ===
 git add -A
 git commit -m "capture: frames"
-
-echo.
-echo === 3/5  Syncing with GitHub ===
-git fetch origin
-git rebase origin/main
-if errorlevel 1 (
-  git rebase --abort
-  echo [ERROR] Remote has other changes. Run push.bat or try again.
-  pause
-  exit /b 1
-)
 
 echo.
 echo === 4/5  Rebuilding site ===
