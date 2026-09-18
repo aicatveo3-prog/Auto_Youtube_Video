@@ -820,11 +820,15 @@ function paintLightbox() {
   const one = n <= 1;
   $('#lb-prev').hidden = one;
   $('#lb-next').hidden = one;
+  // Clamp, not wrap: grey out the arrow once you reach an end.
+  $('#lb-prev').disabled = _lbIdx === 0;
+  $('#lb-next').disabled = _lbIdx === n - 1;
 }
 function lbStep(delta) {
   const n = _lbFrames.length;
-  if (n <= 1) return;
-  _lbIdx = (_lbIdx + delta + n) % n;   // wrap around both ends
+  const next = _lbIdx + delta;
+  if (next < 0 || next >= n) return;   // stop at both ends, no wrap
+  _lbIdx = next;
   paintLightbox();
 }
 function closeLightbox() {
