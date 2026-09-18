@@ -786,7 +786,7 @@ function renderShots(frames) {
   if (!frames.length) return;
   $('#rd-shots-head').textContent =
     frames.length > 1 ? `🖼️ 캡쳐한 화면 ${frames.length}` : '🖼️ 캡쳐한 화면';
-  frames.forEach((f) => {
+  frames.forEach((f, i) => {
     const fig = el('figure', 'shot');
     const img = el('img');
     img.src = f.url; img.alt = f.label || f.t; img.loading = 'lazy';
