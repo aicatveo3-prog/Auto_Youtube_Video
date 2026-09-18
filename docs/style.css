@@ -946,7 +946,8 @@ body.modal-open { overflow: hidden; }
   border-radius: var(--r2); cursor: pointer; user-select: none;
   transition: background .15s var(--ease);
 }
-.lb-nav:hover { background: rgba(0, 0, 0, .62); }
+.lb-nav:hover:not(:disabled) { background: rgba(0, 0, 0, .62); }
+.lb-nav:disabled { opacity: .25; cursor: default; }
 .lb-prev { left: var(--s4); }
 .lb-next { right: var(--s4); }
 .lb-close {
