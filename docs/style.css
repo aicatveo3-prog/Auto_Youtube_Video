@@ -639,7 +639,7 @@ mark {
   font-size: var(--t1); font-weight: 600; color: var(--muted);
   text-transform: uppercase; letter-spacing: .04em; margin-bottom: var(--s2);
 }
-.rd-reads-list { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.rd-reads-list { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s2); }
 .read-chip {
   display: inline-flex; align-items: center; gap: var(--s2);
   max-width: 100%; padding: var(--s2) var(--s3); border-radius: var(--r3);
