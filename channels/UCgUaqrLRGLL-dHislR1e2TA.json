@@ -113,7 +113,7 @@
    "tab": "videos",
    "access": "public",
    "thumb": "https://i.ytimg.com/vi/VNuc8XeyOrc/mqdefault.jpg",
-   "checked": false
+   "checked": true
   },
   {
    "id": "seNJ6VH4VSk",
@@ -153,7 +153,7 @@
    "tab": "videos",
    "access": "public",
    "thumb": "https://i.ytimg.com/vi/RKdbftYt-3E/mqdefault.jpg",
-   "checked": true
+   "checked": false
   },
   {
    "id": "_K25c-nL3Hc",
@@ -163,7 +163,7 @@
    "tab": "videos",
    "access": "public",
    "thumb": "https://i.ytimg.com/vi/_K25c-nL3Hc/mqdefault.jpg",
-   "checked": true
+   "checked": false
   },
   {
    "id": "oICku2syVpY",
@@ -223,7 +223,7 @@
    "tab": "videos",
    "access": "public",
    "thumb": "https://i.ytimg.com/vi/kDfWPCbAbbM/mqdefault.jpg",
-   "checked": true
+   "checked": false
   },
   {
    "id": "xaBOKENhZUo",
