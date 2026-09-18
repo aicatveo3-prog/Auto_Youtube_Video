@@ -98,10 +98,16 @@
     <button id="cd-prompts" class="ghost btn cd-prompts-btn" type="button">📝 정리본 프롬프트</button>
   </div>
 
-  <section id="cd-articles" class="cd-articles" hidden>
-    <h3 class="cd-articles-h">📄 읽을거리</h3>
+  <details id="cd-articles" class="cd-articles" hidden open>
+    <summary class="cd-articles-h">
+      <span class="cd-art-chev" aria-hidden="true">▶</span>
+      <span class="cd-art-ico" aria-hidden="true">📄</span>
+      <span class="cd-art-label">읽을거리</span>
+      <span id="cd-articles-n" class="cd-art-count"></span>
+      <span class="cd-art-hint">펼치기 / 접기</span>
+    </summary>
     <div id="cd-articles-list" class="art-cards"></div>
-  </section>
+  </details>
 
   <div class="tabbar" role="tablist">
     <button role="tab" class="tabbtn on" data-ct="all">전체 <span></span></button>

@@ -478,6 +478,10 @@ async function renderChannelArticles(key) {
   try { arts = (await api('/api/articles')).articles || []; } catch { arts = []; }
   const mine = arts.filter((a) => a.channel_key === key);
   wrap.hidden = mine.length === 0;
+  $('#cd-articles-n').textContent = mine.length || '';
+  // Collapse once there are enough articles to bury the video list; a channel
+  // with one or two stays open so the section is not easy to miss.
+  wrap.open = mine.length > 0 && mine.length <= 2;
   mine.forEach((a) => {
     const card = el('a', 'art-card');
     card.href = `#/article/${encodeURIComponent(a.slug)}`;
