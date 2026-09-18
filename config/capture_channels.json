@@ -1,0 +1,9 @@
+{
+  "note": "프레임 캡쳐 대상 채널 목록입니다. 온라인 AI(Web Kiro 등)가 정리본과 함께 shots.json(캡쳐 시점 목록)을 만들 때, 이 목록에 있는 채널의 영상에만 만들면 됩니다. 실제 캡쳐는 shots.json이 있는 영상만 로컬 ytframes.py가 처리하므로, 여기 없는 채널은 자연히 캡쳐되지 않습니다. 윈카 AI 채널을 웹 UI '채널 추가'로 등록한 뒤, 그 channel_id(UC로 시작하는 24자)를 아래 channels 배열에 넣으세요.",
+  "channels": [
+    {
+      "channel_id": "",
+      "name": "윈카 AI"
+    }
+  ]
+}

@@ -181,6 +181,12 @@
     <div class="rd-reads-list" id="rd-reads-list"></div>
   </div>
 
+  <!-- 이 영상에서 캡쳐한 화면 (온라인 AI가 지정 → 로컬이 추출) -->
+  <div class="rd-shots" id="rd-shots" hidden>
+    <div class="rd-shots-head" id="rd-shots-head">🖼️ 캡쳐한 화면</div>
+    <div class="rd-shots-grid" id="rd-shots-grid"></div>
+  </div>
+
   <div class="toolbar">
     <label class="grow">
       <span class="sr-only">본문 검색</span>
@@ -307,6 +313,12 @@
     <p class="muted small" id="pm-desc"></p>
     <pre id="pm-text" class="reader"></pre>
   </div>
+</div>
+
+<!-- ══ 캡쳐 이미지 크게 보기 ══════════════════════════════ -->
+<div id="lightbox" class="lightbox" hidden>
+  <img id="lightbox-img" alt="">
+  <div id="lightbox-cap" class="lightbox-cap"></div>
 </div>
 
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>

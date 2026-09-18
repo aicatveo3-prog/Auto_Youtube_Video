@@ -270,6 +270,40 @@ def build_channel(key, blob, have, cleaned, art_by_vid, local) -> dict:
     return blob
 
 
+def read_frames(vid: str) -> list[dict]:
+    """Captured stills for a video, if any. ytframes.py writes frames/index.json
+    after grabbing them; we only surface frames that were actually captured, not
+    the raw shots.json request. URLs point at the docs/ copy made below."""
+    idx = TRANSCRIPTS / vid / "frames" / "index.json"
+    if not idx.exists():
+        return []
+    try:
+        data = json.loads(idx.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return []
+    out = []
+    for f in data.get("frames", []):
+        if f.get("file"):
+            out.append({"t": f.get("t", ""), "label": f.get("label", ""),
+                        "url": f"data/frames/{vid}/{f['file']}"})
+    return out
+
+
+def copy_frames(vid: str) -> int:
+    """Copy a video's captured jpgs into docs/data so Pages can serve them.
+    Returns bytes copied. DATA is wiped each build, so this always re-copies."""
+    src = TRANSCRIPTS / vid / "frames"
+    if not src.is_dir():
+        return 0
+    total = 0
+    dst = DATA / "frames" / vid
+    for f in src.glob("*.jpg"):
+        dst.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(f, dst / f.name)
+        total += f.stat().st_size
+    return total
+
+
 def build_video(vid, owner, art_by_vid=None) -> dict:
     m = read_meta(vid)
     return {
@@ -290,6 +324,8 @@ def build_video(vid, owner, art_by_vid=None) -> dict:
         "clean": read_clean(vid),
         # 읽을거리(아티클) linked to this video, for the reader's link button.
         "articles": (art_by_vid or {}).get(vid, []),
+        # Captured stills (frame grabs), if any were requested and taken.
+        "frames": read_frames(vid),
     }
 
 
@@ -384,6 +420,7 @@ def main() -> int:
     for vid in sorted(have):
         total += write_json(DATA / "v" / f"{vid}.json",
                            build_video(vid, owner, art_by_vid))
+        total += copy_frames(vid)      # copy captured stills into docs/data
 
     # One flat index for client-side full-text search.
     search = []
@@ -407,8 +444,10 @@ def main() -> int:
 
     copy_assets()
 
+    framed = sum(1 for vid in have
+                 if (TRANSCRIPTS / vid / "frames" / "index.json").exists())
     print(f"built docs/ : 채널 {len(blobs)} · 영상 {len(have)} · 정리본 {len(cleaned)} "
-          f"· 읽을거리 {len(articles)} · data {total/1024/1024:.1f} MB")
+          f"· 읽을거리 {len(articles)} · 캡쳐 {framed}영상 · data {total/1024/1024:.1f} MB")
     return 0
 
 

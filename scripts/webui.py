@@ -781,7 +781,34 @@ def api_video(vid: str):
         "language": m.get("language", ""),
         "path": f"transcripts/{vid}/plain.txt",
         "text": text,
+        "frames": frames_for(vid),
     })
+
+
+def frames_for(vid: str) -> list[dict]:
+    """Captured stills for the reader gallery. Served live from disk via the
+    /media route below; the static site rewrites these URLs at build time."""
+    idx = TRANSCRIPTS / vid / "frames" / "index.json"
+    if not idx.exists():
+        return []
+    try:
+        data = json.loads(idx.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return []
+    out = []
+    for f in data.get("frames", []):
+        if f.get("file"):
+            out.append({"t": f.get("t", ""), "label": f.get("label", ""),
+                        "url": f"/media/{vid}/{f['file']}"})
+    return out
+
+
+@app.get("/media/<vid>/<name>")
+def media(vid: str, name: str):
+    """Serve a captured frame image from transcripts/<id>/frames/."""
+    if not VIDEO_ID_RE.match(vid) or not re.fullmatch(r"[A-Za-z0-9._-]+", name):
+        return jsonify({"error": "bad path"}), 400
+    return send_from_directory(TRANSCRIPTS / vid / "frames", name)
 
 
 @app.get("/api/prompts")
