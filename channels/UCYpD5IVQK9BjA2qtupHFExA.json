@@ -94,7 +94,7 @@
    "tab": "videos",
    "access": "public",
    "thumb": "https://i.ytimg.com/vi/k9LFDbKr8ro/mqdefault.jpg",
-   "checked": false
+   "checked": true
   },
   {
    "id": "Z4qfIunxkNE",
@@ -104,7 +104,7 @@
    "tab": "videos",
    "access": "public",
    "thumb": "https://i.ytimg.com/vi/Z4qfIunxkNE/mqdefault.jpg",
-   "checked": false
+   "checked": true
   },
   {
    "id": "8QQQKqL-X5g",
@@ -114,7 +114,7 @@
    "tab": "videos",
    "access": "public",
    "thumb": "https://i.ytimg.com/vi/8QQQKqL-X5g/mqdefault.jpg",
-   "checked": false
+   "checked": true
   },
   {
    "id": "JV8tliiWc40",
