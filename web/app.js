@@ -459,7 +459,7 @@ async function loadChannel(key) {
   if (blob.listed_at) bits.push(`${blob.listed_at} 기준`);
   $('#cd-info').textContent = bits.join(' · ');
 
-  $$('.tabbtn').forEach((b) => b.classList.toggle('on', b.dataset.ct === S.ctab));
+  $$('.tabbtn[data-ct]').forEach((b) => b.classList.toggle('on', b.dataset.ct === S.ctab));
   S.limit = PAGE;
   renderChannel();
   await renderChannelArticles(key);
@@ -555,7 +555,7 @@ function visible() {
 
 function renderChannel() {
   const counts = ctabCounts();
-  $$('.tabbtn').forEach((b) => {
+  $$('.tabbtn[data-ct]').forEach((b) => {
     b.querySelector('span').textContent = counts[b.dataset.ct];
   });
   // Selecting and extracting only make sense where something is unextracted.
@@ -1587,9 +1587,9 @@ $('#vid-target').addEventListener('keydown', (e) => { if (e.key === 'Enter') doV
 $('#btn-run').addEventListener('click', doRun);
 $('#btn-cancel').addEventListener('click', () => jpost('/api/cancel', {}).catch(() => {}));
 
-$$('.tabbtn').forEach((b) => b.addEventListener('click', () => {
+$$('.tabbtn[data-ct]').forEach((b) => b.addEventListener('click', () => {
   S.ctab = b.dataset.ct;
-  $$('.tabbtn').forEach((x) => x.classList.toggle('on', x === b));
+  $$('.tabbtn[data-ct]').forEach((x) => x.classList.toggle('on', x === b));
   S.limit = PAGE;                 // a new filter starts from the top
   renderChannel();
 }));
