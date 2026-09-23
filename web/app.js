@@ -1229,19 +1229,28 @@ function parseVideoId(t) {
   return null;
 }
 
+// Switch between the 채널 추가 / 영상 개별 추가 tabs on the add page.
+function showAddTab(which) {
+  const isVid = which === 'video';
+  $('#tab-add-ch').classList.toggle('on', !isVid);
+  $('#tab-add-vid').classList.toggle('on', isVid);
+  $('#add-ch-panel').hidden = isVid;
+  $('#add-vid-panel').hidden = !isVid;
+}
+
 // Extract a single video directly (no channel listing). Reuses /api/extract.
 async function doExtractOne(vid) {
-  $('#btn-load').disabled = true;
-  $('#load-prog').hidden = false;
-  $('#load-bar').style.width = '15%';
-  $('#load-text').textContent = '영상 자막을 가져오는 중...';
+  $('#btn-vadd').disabled = true;
+  $('#vadd-prog').hidden = false;
+  $('#vadd-bar').style.width = '15%';
+  $('#vadd-text').textContent = '영상 자막을 가져오는 중...';
   try {
     await jpost('/api/extract', { ids: [vid], lang: 'auto' });
     poll(async (job) => {
-      $('#btn-load').disabled = false;
-      $('#load-bar').style.width = '100%';
+      $('#btn-vadd').disabled = false;
+      $('#vadd-bar').style.width = '100%';
       const r = (job.results || {})[vid] || {};
-      $('#load-text').textContent = job.message || '';
+      $('#vadd-text').textContent = job.message || '';
       if (r.state === 'ok' || r.state === 'cached') {
         toast('영상 추출 완료');
         location.hash = `#/video/${encodeURIComponent(vid)}`;
@@ -1251,21 +1260,35 @@ async function doExtractOne(vid) {
         toast(job.message || r.detail || '추출에 실패했습니다.', true);
       }
     }, (job) => {
-      $('#load-text').textContent = `영상 자막을 가져오는 중... ${job.elapsed}초`;
+      $('#vadd-text').textContent = `영상 자막을 가져오는 중... ${job.elapsed}초`;
     });
   } catch (e) {
-    $('#btn-load').disabled = false;
-    $('#load-prog').hidden = true;
+    $('#btn-vadd').disabled = false;
+    $('#vadd-prog').hidden = true;
     toast(e.message, true);
   }
 }
 
+async function doVideoAdd() {
+  const raw = $('#vid-target').value.trim();
+  if (!raw) { toast('영상 URL 또는 ID를 입력하세요.', true); return; }
+  const vid = parseVideoId(raw);
+  if (!vid) { toast('영상 URL 또는 11자리 영상 ID를 정확히 입력하세요.', true); return; }
+  doExtractOne(vid);
+}
+
 async function doLoad() {
   const target = $('#target').value.trim();
-  if (!target) { toast('채널 또는 영상 URL을 입력하세요.', true); return; }
-  // A single video URL/ID extracts that one video instead of listing a channel.
+  if (!target) { toast('채널을 입력하세요.', true); return; }
+  // Forgiving: if a video URL/ID was pasted into the channel box, jump to the
+  // 영상 개별 추가 tab and extract it there instead of failing as a channel.
   const vid = parseVideoId(target);
-  if (vid) { doExtractOne(vid); return; }
+  if (vid) {
+    showAddTab('video');
+    $('#vid-target').value = target;
+    doExtractOne(vid);
+    return;
+  }
   const tabs = $$('.tab:checked').map((c) => c.value);
   if (!tabs.length) { toast('탭을 하나 이상 선택하세요.', true); return; }
 
@@ -1557,6 +1580,10 @@ $('#gsearch').addEventListener('submit', (e) => {
 
 $('#btn-load').addEventListener('click', doLoad);
 $('#target').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLoad(); });
+$('#tab-add-ch').addEventListener('click', () => showAddTab('channel'));
+$('#tab-add-vid').addEventListener('click', () => showAddTab('video'));
+$('#btn-vadd').addEventListener('click', doVideoAdd);
+$('#vid-target').addEventListener('keydown', (e) => { if (e.key === 'Enter') doVideoAdd(); });
 $('#btn-run').addEventListener('click', doRun);
 $('#btn-cancel').addEventListener('click', () => jpost('/api/cancel', {}).catch(() => {}));
 

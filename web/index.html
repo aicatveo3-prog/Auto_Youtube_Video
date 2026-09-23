@@ -15,7 +15,7 @@
   <a class="brand" href="#/">스크립트 라이브러리</a>
   <nav>
     <a href="#/" data-nav="library">라이브러리</a>
-    <a href="#/add" data-nav="add" class="write-only">채널 추가</a>
+    <a href="#/add" data-nav="add" class="write-only">추가</a>
   </nav>
   <form class="navsearch" id="gsearch">
     <label class="sr-only" for="gq">전체 스크립트 검색</label>
@@ -44,14 +44,21 @@
   </section>
 </section>
 
-<!-- ══ 채널 추가 ══════════════════════════════════════════ -->
+<!-- ══ 추가 (채널 / 영상 개별) ═════════════════════════════ -->
 <section id="v-add" class="view" hidden>
-  <h2 class="vh">채널 추가</h2>
-  <div class="panel">
+  <h2 class="vh">추가</h2>
+
+  <div class="tabbar" role="tablist">
+    <button class="tabbtn on" id="tab-add-ch" type="button">채널 추가</button>
+    <button class="tabbtn" id="tab-add-vid" type="button">영상 개별 추가</button>
+  </div>
+
+  <!-- 채널 추가 -->
+  <div class="panel" id="add-ch-panel">
     <div class="row">
       <label class="grow">
-        <span>채널 또는 영상</span>
-        <input id="target" type="text" placeholder="@channel · 채널 URL · 또는 영상 URL/ID"
+        <span>채널</span>
+        <input id="target" type="text" placeholder="@channel 또는 채널 URL"
                autocomplete="off" spellcheck="false">
       </label>
       <label class="narrow">
@@ -78,10 +85,27 @@
       <button id="btn-load" class="primary">목록 가져오기</button>
     </div>
     <p class="muted tight">새로 가져오기는 기존 목록을 지우지 않고 합칩니다. 이미 추출한 영상은 항상 유지됩니다.</p>
-    <p class="muted tight">영상 URL(watch·youtu.be·shorts) 또는 11자리 영상 ID를 넣으면 그 영상 하나만 바로 추출합니다. (개수·탭·언어 설정은 채널에만 적용)</p>
     <div id="load-prog" hidden>
       <div class="progress"><div id="load-bar" class="bar"></div></div>
       <p id="load-text" class="muted" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <!-- 영상 개별 추가 -->
+  <div class="panel" id="add-vid-panel" hidden>
+    <div class="row">
+      <label class="grow">
+        <span>영상 URL 또는 ID</span>
+        <input id="vid-target" type="text"
+               placeholder="youtube.com/watch?v=… · youtu.be/… · /shorts/… · 11자리 ID"
+               autocomplete="off" spellcheck="false">
+      </label>
+      <button id="btn-vadd" class="primary">이 영상 추출</button>
+    </div>
+    <p class="muted tight">영상 하나의 자막만 바로 추출합니다. 추출된 영상은 라이브러리의 '채널 미등록'에 표시되고, 나중에 그 채널을 추가하면 자동으로 합쳐집니다.</p>
+    <div id="vadd-prog" hidden>
+      <div class="progress"><div id="vadd-bar" class="bar"></div></div>
+      <p id="vadd-text" class="muted" aria-live="polite"></p>
     </div>
   </div>
 </section>
