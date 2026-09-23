@@ -112,18 +112,40 @@ def split_front_matter(text: str) -> tuple[dict, str]:
     return meta, body.lstrip("\n")
 
 
-def read_clean(vid: str) -> dict:
-    p = TRANSCRIPTS / vid / "clean.md"
-    if not p.exists():
-        return {"exists": False}
+def _clean_files(vid: str) -> list:
+    """Every 정리본 variant for a video: clean.md, clean2.md, clean3.md ...
+    Sorted by filename so clean.md comes first, then clean2.md, clean3.md …."""
+    d = TRANSCRIPTS / vid
+    if not d.is_dir():
+        return []
+    return sorted(d.glob("clean*.md"), key=lambda p: p.name)
+
+
+def _read_clean_file(p, vid: str, label: str) -> dict:
     meta, body = split_front_matter(p.read_text(encoding="utf-8"))
     return {
         "exists": True, "id": vid,
+        "label": label,
         "prompt": meta.get("prompt", ""),
         "generated": meta.get("generated", ""),
         "chars": len(body), "text": body,
-        "path": f"transcripts/{vid}/clean.md",
+        "path": f"transcripts/{vid}/{p.name}",
     }
+
+
+def read_clean(vid: str) -> dict:
+    """The primary 정리본 (clean.md). Kept for backward compatibility with the
+    single-정리본 reader; multi-정리본 clients read `cleans` instead."""
+    files = _clean_files(vid)
+    if not files:
+        return {"exists": False}
+    return _read_clean_file(files[0], vid, "정리본 1")
+
+
+def read_cleans(vid: str) -> list:
+    """All 정리본 variants, labelled 정리본 1 · 정리본 2 · … in file order."""
+    return [_read_clean_file(p, vid, f"정리본 {i + 1}")
+            for i, p in enumerate(_clean_files(vid))]
 
 
 def _read_prompt_dir(directory: Path) -> list[dict]:
@@ -322,6 +344,8 @@ def build_video(vid, owner, art_by_vid=None) -> dict:
         "text": plain_text(vid),
         # Folded in so the reader needs a single request per video.
         "clean": read_clean(vid),
+        # All 정리본 variants (정리본 1, 정리본 2 …) for the reader's switch.
+        "cleans": read_cleans(vid),
         # 읽을거리(아티클) linked to this video, for the reader's link button.
         "articles": (art_by_vid or {}).get(vid, []),
         # Captured stills (frame grabs), if any were requested and taken.

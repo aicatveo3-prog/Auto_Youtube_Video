@@ -510,6 +510,23 @@ fieldset.tabs label { display: inline-flex; align-items: center; gap: var(--s1);
 }
 .panehead button { padding: var(--s1) var(--s3); font-size: var(--t1); }
 
+/* 정리본 전환 탭 (정리본 1 / 정리본 2 …) — 정리본이 2개 이상일 때만 보인다. */
+.cl-tabs {
+  display: flex; gap: var(--s1); flex-wrap: wrap;
+  margin-bottom: var(--s3);
+}
+.cl-tab {
+  padding: var(--s2) var(--s4); font-size: var(--t2); font-weight: 600;
+  color: var(--muted); background: var(--raised);
+  border: 1px solid var(--line); border-radius: var(--r3);
+  cursor: pointer; transition: background var(--ease), color var(--ease);
+}
+.cl-tab:hover { color: var(--text); }
+.cl-tab.on {
+  color: var(--accent-ink); background: var(--accent);
+  border-color: var(--accent);
+}
+
 .reader {
   background: var(--surface); border-radius: var(--r2);
   padding: var(--s5) var(--s6);

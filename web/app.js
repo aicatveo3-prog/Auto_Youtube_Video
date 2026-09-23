@@ -21,7 +21,9 @@ const S = {
   limit: 0,           // how many rows are currently drawn
   poll: null,
   reader: null,       // loaded transcript
-  clean: null,        // loaded 정리본
+  clean: null,        // currently shown 정리본
+  cleans: [],         // all 정리본 variants for this video (정리본 1, 2 …)
+  cleanIdx: 0,        // which one is shown
   article: null,      // loaded 읽을거리 slug
   articleDoc: null,   // loaded 읽을거리 full doc (for 전체 복사)
 };
@@ -1092,16 +1094,61 @@ function renderMarkdown(container, md) {
 /* ── 정리본 ─────────────────────────────────────────────── */
 async function loadClean(vid) {
   const pane = $('#rd-clean-pane');
-  const body = $('#cl-body'), empty = $('#cl-empty');
   $('#cl-pastebox').hidden = true;
   $('#cl-text').value = '';
 
-  let d;
-  try { d = await api(`/api/clean/${encodeURIComponent(vid)}`); }
-  catch { d = { exists: false }; }
-  S.clean = d;
-  await fillPrompts();
+  // The static build bakes every 정리본 variant into the video doc as `cleans`
+  // (정리본 1, 정리본 2 …). The local server only knows the single clean.md, so
+  // fall back to the /api/clean endpoint there.
+  let list = (S.reader && Array.isArray(S.reader.cleans)) ? S.reader.cleans : null;
+  if (!list) {
+    let d;
+    try { d = await api(`/api/clean/${encodeURIComponent(vid)}`); }
+    catch { d = { exists: false }; }
+    list = d.exists ? [{ ...d, label: d.label || '정리본 1' }] : [];
+  }
+  S.cleans = list;
+  S.cleanIdx = 0;
+  S.clean = list.length ? list[0] : { exists: false };
 
+  await fillPrompts();
+  renderCleanTabs();
+  paintClean();
+  pane.hidden = false;
+  applyMode();
+}
+
+/* A segmented switch shown only when a video has more than one 정리본, so the
+ * reader can flip between 정리본 1 / 정리본 2 without leaving the page. */
+function renderCleanTabs() {
+  const host = $('#cl-tabs');
+  if (!host) return;
+  host.textContent = '';
+  const list = S.cleans || [];
+  if (list.length < 2) { host.hidden = true; return; }
+  host.hidden = false;
+  list.forEach((c, i) => {
+    const b = el('button', 'cl-tab' + (i === S.cleanIdx ? ' on' : ''),
+                 c.label || `정리본 ${i + 1}`);
+    b.type = 'button';
+    b.addEventListener('click', () => {
+      if (i === S.cleanIdx) return;
+      S.cleanIdx = i;
+      S.clean = list[i];
+      renderCleanTabs();
+      paintClean();
+      // Keep the in-page search pointed at the newly shown 정리본.
+      const q = $('#rd-find').value.trim();
+      if (q) runFind(q); else $('#rd-hits').textContent = '';
+    });
+    host.append(b);
+  });
+}
+
+/* Paint whichever 정리본 is currently selected (S.clean). */
+function paintClean() {
+  const body = $('#cl-body'), empty = $('#cl-empty');
+  const d = S.clean || { exists: false };
   if (d.exists) {
     empty.hidden = true;
     body.hidden = false;
@@ -1117,11 +1164,8 @@ async function loadClean(vid) {
     $('#cl-meta').textContent = '';
     $('#cl-copy').hidden = true;
     $('#cl-drop').hidden = true;
-    $('#cl-ask').textContent = `"${vid} 정리본 만들어줘"`;
-    await fillPrompts();
+    $('#cl-ask').textContent = `"${(S.reader && S.reader.id) || ''} 정리본 만들어줘"`;
   }
-  pane.hidden = false;
-  applyMode();
 }
 
 async function fillPrompts() {
