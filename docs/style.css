@@ -482,6 +482,8 @@ fieldset.tabs label { display: inline-flex; align-items: center; gap: var(--s1);
      orig  : no 정리본 yet, so 원본 gets the column           */
 .split { display: grid; gap: var(--s4); align-items: start; }
 .split[data-mode="both"] { grid-template-columns: 1fr 1fr; }
+/* 정리본 1 · 정리본 2 좌우 나란히 비교 */
+.split[data-mode="compare"] { grid-template-columns: 1fr 1fr; }
 .split[data-mode="clean"],
 .split[data-mode="orig"] {
   grid-template-columns: minmax(0, 48em);
@@ -509,23 +511,6 @@ fieldset.tabs label { display: inline-flex; align-items: center; gap: var(--s1);
   text-transform: uppercase; letter-spacing: .06em;
 }
 .panehead button { padding: var(--s1) var(--s3); font-size: var(--t1); }
-
-/* 정리본 전환 탭 (정리본 1 / 정리본 2 …) — 정리본이 2개 이상일 때만 보인다. */
-.cl-tabs {
-  display: flex; gap: var(--s1); flex-wrap: wrap;
-  margin-bottom: var(--s3);
-}
-.cl-tab {
-  padding: var(--s2) var(--s4); font-size: var(--t2); font-weight: 600;
-  color: var(--muted); background: var(--raised);
-  border: 1px solid var(--line); border-radius: var(--r3);
-  cursor: pointer; transition: background var(--ease), color var(--ease);
-}
-.cl-tab:hover { color: var(--text); }
-.cl-tab.on {
-  color: var(--accent-ink); background: var(--accent);
-  border-color: var(--accent);
-}
 
 .reader {
   background: var(--surface); border-radius: var(--r2);
@@ -859,7 +844,8 @@ body.modal-open { overflow: hidden; }
 
 /* ═══ responsive ════════════════════════════════════════════ */
 @media (max-width: 1080px) {
-  .split[data-mode="both"] { grid-template-columns: 1fr; }
+  .split[data-mode="both"],
+  .split[data-mode="compare"] { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 760px) {
