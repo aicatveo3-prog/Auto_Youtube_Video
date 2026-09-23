@@ -1603,6 +1603,24 @@ $('#sel-all').addEventListener('click', () => {
   });
   renderChannel(); saveSelection();
 });
+// Select the newest N un-extracted videos: the first N selectable rows in the
+// current view (default sort is 최신순, so "top" = newest). Replaces the
+// current selection so the count is exactly N (or fewer if not that many left).
+function pickNewest(n) {
+  if (!Number.isFinite(n) || n < 1) { toast('선택할 개수를 입력하세요.', true); return; }
+  const sel = visible().filter((v) => !isDone(v) && !isMembers(v)).slice(0, n);
+  if (!sel.length) { toast('선택할 미추출 영상이 없습니다.', true); return; }
+  S.picked = new Set(sel.map((v) => v.id));
+  renderChannel(); saveSelection();
+  toast(`최신 미추출 ${sel.length}개 선택`);
+}
+$$('.pick-n').forEach((b) =>
+  b.addEventListener('click', () => pickNewest(Number(b.dataset.n))));
+$('#pick-num-go').addEventListener('click', () => pickNewest(Number($('#pick-num').value)));
+$('#pick-num').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') pickNewest(Number($('#pick-num').value));
+});
+
 $('#sel-none').addEventListener('click', () => {
   S.picked.clear(); renderChannel(); saveSelection();
 });

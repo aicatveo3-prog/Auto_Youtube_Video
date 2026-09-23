@@ -1007,3 +1007,12 @@ body.modal-open { overflow: hidden; }
   .lb-prev { left: var(--s2); }
   .lb-next { right: var(--s2); }
 }
+
+/* Quick-pick: 최신 미추출 N개 선택 (in the channel pickbar) */
+.pick-quick {
+  display: inline-flex; align-items: center; gap: var(--s2); flex-wrap: wrap;
+  padding-left: var(--s3); margin-left: var(--s1);
+  border-left: 1px solid var(--line);
+}
+.pick-quick .pick-n { padding: var(--s1) var(--s3); min-width: 40px; }
+.pick-num-input { width: 68px; }

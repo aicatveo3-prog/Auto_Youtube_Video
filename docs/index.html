@@ -170,6 +170,14 @@
   <div class="toolbar write-only" id="pickbar">
     <button id="sel-all" class="ghost">보이는 것 전체 선택</button>
     <button id="sel-none" class="ghost">선택 해제</button>
+    <span class="pick-quick">
+      <span class="muted small">최신 미추출</span>
+      <button class="ghost pick-n" data-n="10">10</button>
+      <button class="ghost pick-n" data-n="20">20</button>
+      <button class="ghost pick-n" data-n="50">50</button>
+      <input id="pick-num" type="number" min="1" step="1" placeholder="개수" class="pick-num-input">
+      <button id="pick-num-go" class="ghost">선택</button>
+    </span>
     <span class="spacer"></span>
     <output id="count" class="count" aria-live="polite"></output>
   </div>
