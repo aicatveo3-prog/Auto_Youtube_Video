@@ -21,9 +21,8 @@ const S = {
   limit: 0,           // how many rows are currently drawn
   poll: null,
   reader: null,       // loaded transcript
-  clean: null,        // currently shown 정리본
+  clean: null,        // primary 정리본 (정리본 1)
   cleans: [],         // all 정리본 variants for this video (정리본 1, 2 …)
-  cleanIdx: 0,        // which one is shown
   article: null,      // loaded 읽을거리 slug
   articleDoc: null,   // loaded 읽을거리 full doc (for 전체 복사)
 };
@@ -849,19 +848,32 @@ function closeLightbox() {
  * a checkbox away. Without one there is nothing to prefer, so 원본 takes the
  * column and the "how to make one" hint sits above it instead of beside it.
  */
+function hasMultiClean() { return (S.cleans || []).length >= 2; }
+
 function readerMode() {
   if (!S.clean?.exists) return 'orig';
+  // 정리본이 2개 이상이고 "나란히 보기"가 켜지면 정리본 1 · 정리본 2를 좌우로.
+  if (hasMultiClean() && $('#rd-compare').checked) return 'compare';
   return $('#rd-orig').checked ? 'both' : 'clean';
 }
 
 function applyMode() {
   const mode = readerMode();
   const hasClean = !!S.clean?.exists;
+  const multi = hasMultiClean();
+  const comparing = mode === 'compare';
 
   $('#rd-split-wrap').dataset.mode = mode;
-  $('#rd-orig-wrap').hidden = !hasClean;      // nothing to toggle without one
-  $('#rd-orig-pane').hidden = mode === 'clean';
+
+  // 토글 노출: 나란히 보기는 정리본 2개 이상일 때만. 원본 함께 보기는 정리본이
+  // 있을 때만이며, 나란히 보기 중에는 혼선을 막기 위해 숨긴다.
+  $('#rd-compare-wrap').hidden = !multi;
+  $('#rd-orig-wrap').hidden = !hasClean || comparing;
+
+  // 원본 pane: orig/both 모드에서만. 정리본 2 pane: compare 모드에서만.
+  $('#rd-orig-pane').hidden = !(mode === 'orig' || mode === 'both');
   $('#rd-clean-pane').hidden = false;
+  $('#rd-clean-pane2').hidden = !comparing;
 
   // Keep find pointed at whatever is on screen.
   const target = hasClean ? '정리본' : '원본';
@@ -1093,7 +1105,6 @@ function renderMarkdown(container, md) {
 
 /* ── 정리본 ─────────────────────────────────────────────── */
 async function loadClean(vid) {
-  const pane = $('#rd-clean-pane');
   $('#cl-pastebox').hidden = true;
   $('#cl-text').value = '';
 
@@ -1108,47 +1119,26 @@ async function loadClean(vid) {
     list = d.exists ? [{ ...d, label: d.label || '정리본 1' }] : [];
   }
   S.cleans = list;
-  S.cleanIdx = 0;
   S.clean = list.length ? list[0] : { exists: false };
 
   await fillPrompts();
-  renderCleanTabs();
+
+  // 정리본이 2개 이상이면 기본적으로 좌우 나란히 비교 보기를 켠다.
+  $('#rd-compare').checked = list.length >= 2;
+
   paintClean();
-  pane.hidden = false;
+  paintClean2();
+  $('#rd-clean-pane').hidden = false;
   applyMode();
 }
 
-/* A segmented switch shown only when a video has more than one 정리본, so the
- * reader can flip between 정리본 1 / 정리본 2 without leaving the page. */
-function renderCleanTabs() {
-  const host = $('#cl-tabs');
-  if (!host) return;
-  host.textContent = '';
-  const list = S.cleans || [];
-  if (list.length < 2) { host.hidden = true; return; }
-  host.hidden = false;
-  list.forEach((c, i) => {
-    const b = el('button', 'cl-tab' + (i === S.cleanIdx ? ' on' : ''),
-                 c.label || `정리본 ${i + 1}`);
-    b.type = 'button';
-    b.addEventListener('click', () => {
-      if (i === S.cleanIdx) return;
-      S.cleanIdx = i;
-      S.clean = list[i];
-      renderCleanTabs();
-      paintClean();
-      // Keep the in-page search pointed at the newly shown 정리본.
-      const q = $('#rd-find').value.trim();
-      if (q) runFind(q); else $('#rd-hits').textContent = '';
-    });
-    host.append(b);
-  });
-}
-
-/* Paint whichever 정리본 is currently selected (S.clean). */
+/* 왼쪽 칸 = 기본(첫 번째) 정리본. 나란히 보기 중엔 제목을 "정리본 1"로 바꾼다. */
 function paintClean() {
   const body = $('#cl-body'), empty = $('#cl-empty');
   const d = S.clean || { exists: false };
+  const comparing = hasMultiClean() && $('#rd-compare').checked;
+  $('#cl-h3').textContent = comparing ? (d.label || '정리본 1') : '정리본';
+
   if (d.exists) {
     empty.hidden = true;
     body.hidden = false;
@@ -1166,6 +1156,24 @@ function paintClean() {
     $('#cl-drop').hidden = true;
     $('#cl-ask').textContent = `"${(S.reader && S.reader.id) || ''} 정리본 만들어줘"`;
   }
+}
+
+/* 오른쪽 칸 = 두 번째 정리본. 정리본이 하나뿐이면 비워 둔다. */
+function paintClean2() {
+  const list = S.cleans || [];
+  const d = list[1];
+  const body = $('#cl-body2');
+  if (!d) {
+    body.textContent = '';
+    $('#cl-meta2').textContent = '';
+    $('#cl-copy2').hidden = true;
+    return;
+  }
+  $('#cl-h3-2').textContent = d.label || '정리본 2';
+  renderMarkdown(body, d.text);
+  $('#cl-meta2').textContent =
+    `${commas(d.chars)}자 · ${d.prompt || 'cleanup'} · ${d.generated || ''}`;
+  $('#cl-copy2').hidden = false;
 }
 
 async function fillPrompts() {
@@ -1686,7 +1694,11 @@ $('#cl-paste').addEventListener('click', () => {
   $('#cl-text').focus();
 });
 $('#cl-cancel').addEventListener('click', () => { $('#cl-pastebox').hidden = true; });
+$('#cl-copy2').addEventListener('click',
+  () => writeClipboard((S.cleans && S.cleans[1]) ? S.cleans[1].text : ''));
 $('#rd-orig').addEventListener('change', applyMode);
+// 나란히 보기 토글: 왼쪽 칸 제목(정리본/정리본 1)도 함께 갱신한다.
+$('#rd-compare').addEventListener('change', () => { paintClean(); applyMode(); });
 let findTimer;
 $('#rd-find').addEventListener('input', () => {
   clearTimeout(findTimer);
