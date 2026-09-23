@@ -1016,14 +1016,26 @@ def main():
         return 0
 
     # Sync down on launch so 정리본 that another AI added on GitHub are already
-    # here before any collecting starts. Fast-forward only: never touches local
-    # work, and quietly skips if offline or there is nothing to pull.
+    # here before any collecting starts. Uses fetch + rebase (not pull --ff-only)
+    # so it still works when the local branch has drifted from origin — e.g. a
+    # stray "manual upload" commit or an earlier failed push. --ff-only silently
+    # refused in that case, which left 정리본 stuck on GitHub and never synced.
+    # --autostash tucks away any dirty working tree for the duration; local
+    # commits (unpushed transcripts) are replayed on top, never discarded.
     git = shutil.which("git")
     if git and (ROOT / ".git").is_dir():
+        def _g(*a):
+            return subprocess.run([git, *a], cwd=str(ROOT), capture_output=True,
+                                  text=True, encoding="utf-8", errors="replace",
+                                  timeout=120, shell=False)
         try:
-            subprocess.run([git, "pull", "--ff-only"], cwd=str(ROOT),
-                           capture_output=True, text=True, timeout=120, shell=False)
-            print("  GitHub 동기화 완료 (다른 AI 정리본 포함 최신 상태)")
+            _g("fetch", "origin")
+            r = _g("rebase", "--autostash", "origin/main")
+            if r.returncode == 0:
+                print("  GitHub 동기화 완료 (다른 AI 정리본 포함 최신 상태)")
+            else:
+                _g("rebase", "--abort")
+                print("  GitHub 동기화 실패(충돌) — push.bat 실행 또는 수동 병합이 필요합니다.")
         except Exception:                            # noqa: BLE001
             print("  GitHub 동기화 건너뜀 (오프라인이거나 병합 필요)")
 
