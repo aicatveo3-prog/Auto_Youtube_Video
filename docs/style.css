@@ -482,8 +482,6 @@ fieldset.tabs label { display: inline-flex; align-items: center; gap: var(--s1);
      orig  : no 정리본 yet, so 원본 gets the column           */
 .split { display: grid; gap: var(--s4); align-items: start; }
 .split[data-mode="both"] { grid-template-columns: 1fr 1fr; }
-/* 정리본 1 · 정리본 2 좌우 나란히 비교 */
-.split[data-mode="compare"] { grid-template-columns: 1fr 1fr; }
 .split[data-mode="clean"],
 .split[data-mode="orig"] {
   grid-template-columns: minmax(0, 48em);
@@ -844,8 +842,7 @@ body.modal-open { overflow: hidden; }
 
 /* ═══ responsive ════════════════════════════════════════════ */
 @media (max-width: 1080px) {
-  .split[data-mode="both"],
-  .split[data-mode="compare"] { grid-template-columns: 1fr; }
+  .split[data-mode="both"] { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 760px) {

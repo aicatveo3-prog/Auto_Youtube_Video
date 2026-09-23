@@ -238,9 +238,6 @@
     </label>
     <output id="rd-hits" class="count" aria-live="polite"></output>
     <span class="spacer"></span>
-    <label class="inline" id="rd-compare-wrap" hidden>
-      <input id="rd-compare" type="checkbox"> 정리본 나란히 보기
-    </label>
     <label class="inline" id="rd-orig-wrap">
       <input id="rd-orig" type="checkbox"> 원본 함께 보기
     </label>
@@ -257,10 +254,10 @@
       <article id="rd-body" class="reader"></article>
     </div>
 
-    <!-- 정리본 (나란히 보기일 때는 왼쪽 = 정리본 1) -->
+    <!-- 정리본 -->
     <div class="pane" id="rd-clean-pane">
       <div class="panehead">
-        <h3 id="cl-h3">정리본</h3>
+        <h3>정리본</h3>
         <span class="muted small" id="cl-meta"></span>
         <span class="spacer"></span>
         <button id="cl-copy" class="ghost" hidden>복사</button>
@@ -296,17 +293,6 @@
 
       <!-- 있을 때 -->
       <article id="cl-body" class="reader markdown" hidden></article>
-    </div>
-
-    <!-- 정리본 2 (나란히 보기일 때 오른쪽) -->
-    <div class="pane" id="rd-clean-pane2" hidden>
-      <div class="panehead">
-        <h3 id="cl-h3-2">정리본 2</h3>
-        <span class="muted small" id="cl-meta2"></span>
-        <span class="spacer"></span>
-        <button id="cl-copy2" class="ghost" hidden>복사</button>
-      </div>
-      <article id="cl-body2" class="reader markdown"></article>
     </div>
   </div>
 </section>
