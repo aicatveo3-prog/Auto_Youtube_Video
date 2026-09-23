@@ -1010,9 +1010,25 @@ body.modal-open { overflow: hidden; }
 
 /* Quick-pick: 최신 미추출 N개 선택 (in the channel pickbar) */
 .pick-quick {
-  display: inline-flex; align-items: center; gap: var(--s2); flex-wrap: wrap;
-  padding-left: var(--s3); margin-left: var(--s1);
-  border-left: 1px solid var(--line);
+  display: inline-flex; align-items: center; gap: var(--s3); flex-wrap: wrap;
+  padding-left: var(--s3); border-left: 1px solid var(--line);
 }
-.pick-quick .pick-n { padding: var(--s1) var(--s3); min-width: 40px; }
-.pick-num-input { width: 68px; }
+.pick-quick-label {
+  color: var(--muted); font-size: var(--t1); font-weight: 500; white-space: nowrap;
+}
+/* Segmented preset buttons: one connected pill for 10 / 20 / 50. */
+.pick-seg {
+  display: inline-flex; border: 1px solid var(--line);
+  border-radius: var(--r1); overflow: hidden;
+}
+.pick-seg .pick-n {
+  border: none; border-left: 1px solid var(--line); border-radius: 0;
+  background: var(--bg); color: var(--muted);
+  padding: 6px var(--s3); min-width: 40px; font-size: var(--t1); font-weight: 600;
+  cursor: pointer; transition: background .14s var(--ease), color .14s var(--ease);
+}
+.pick-seg .pick-n:first-child { border-left: none; }
+.pick-seg .pick-n:hover { background: var(--raised); color: var(--text); }
+.pick-custom { display: inline-flex; align-items: center; gap: var(--s1); }
+#pick-num { width: 62px; text-align: center; }
+#pick-num-go { padding: 6px var(--s3); font-size: var(--t1); }
