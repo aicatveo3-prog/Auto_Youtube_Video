@@ -497,16 +497,40 @@ fieldset.tabs label { display: inline-flex; align-items: center; gap: var(--s1);
 }
 .pane { min-width: 0; }
 
-/* 정리본 버전 비교: one column per model output, side by side. */
-.split[data-mode="compare"] { grid-template-columns: minmax(0, 1fr); }
+/* 정리본 버전 비교: one column per model output, shown together by default.
+   A tint per model (--cmp-accent) keeps the two readable at a glance. */
+.split[data-mode="compare"],
+.split[data-mode="compare-orig"] { grid-template-columns: minmax(0, 1fr); }
 .cmp-pane { width: 100%; }
 .cmp-grid {
+  position: relative;
   display: grid; grid-template-columns: 1fr 1fr;
-  gap: var(--s4); align-items: start;
+  gap: var(--s5); align-items: start;
 }
 .cmp-col { min-width: 0; }
-/* A visible seam so it reads as "two versions", not one wide document. */
-.cmp-col + .cmp-col .reader { border-left: 3px solid var(--line-soft); }
+.cmp-head { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s2); }
+.cmp-badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 11px; border-radius: 999px;
+  font-size: var(--t1); font-weight: 700; letter-spacing: .01em;
+  color: #fff; background: var(--cmp-accent, var(--faint));
+}
+.cmp-sub { font-size: var(--t1); color: var(--faint); }
+.cmp-copy {
+  padding: 2px var(--s2); font-size: var(--t1);
+  color: var(--faint); background: transparent; box-shadow: none;
+}
+.cmp-copy:hover { color: var(--fg); background: var(--raised); }
+.cmp-body { border-top: 3px solid var(--cmp-accent, var(--line)); }
+/* VS chip sits in the gutter, on the header line. */
+.cmp-grid[data-count="2"]::before {
+  content: "VS";
+  position: absolute; left: 50%; top: 10px; transform: translate(-50%, -50%);
+  font-size: 10px; font-weight: 800; letter-spacing: .1em;
+  color: var(--faint); background: var(--bg);
+  padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line-soft);
+  z-index: 1;
+}
 .panehead {
   display: flex; align-items: center; gap: var(--s2);
   margin-bottom: var(--s2); padding-bottom: var(--s2);
@@ -855,7 +879,7 @@ body.modal-open { overflow: hidden; }
 @media (max-width: 1080px) {
   .split[data-mode="both"] { grid-template-columns: 1fr; }
   .cmp-grid { grid-template-columns: 1fr; }
-  .cmp-col + .cmp-col .reader { border-left: none; }
+  .cmp-grid[data-count="2"]::before { display: none; }
 }
 
 @media (max-width: 760px) {
