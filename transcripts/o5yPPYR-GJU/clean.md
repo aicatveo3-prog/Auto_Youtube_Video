@@ -1,6 +1,7 @@
 ---
 source: o5yPPYR-GJU
 prompt: cleanup-모두의부동산
+model: Opus 4.6
 generated: 2026-09-14
 ---
 
