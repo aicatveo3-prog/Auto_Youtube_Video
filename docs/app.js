@@ -775,6 +775,7 @@ async function loadReader(vid) {
   $('#rd-find').value = '';
   $('#rd-hits').textContent = '';
   $('#rd-orig').checked = false;
+  $('#rd-compare').checked = false;
   paintReader('');
   await loadClean(d.id);          // sets S.clean, then applyMode uses it
 }
@@ -847,8 +848,13 @@ function closeLightbox() {
  * a checkbox away. Without one there is nothing to prefer, so 원본 takes the
  * column and the "how to make one" hint sits above it instead of beside it.
  */
+function hasVariants() {
+  return (S.clean?.variants?.length || 0) >= 2;
+}
+
 function readerMode() {
   if (!S.clean?.exists) return 'orig';
+  if (hasVariants() && $('#rd-compare').checked) return 'compare';
   return $('#rd-orig').checked ? 'both' : 'clean';
 }
 
@@ -858,14 +864,41 @@ function applyMode() {
 
   $('#rd-split-wrap').dataset.mode = mode;
   $('#rd-orig-wrap').hidden = !hasClean;      // nothing to toggle without one
-  $('#rd-orig-pane').hidden = mode === 'clean';
-  $('#rd-clean-pane').hidden = false;
+  $('#rd-compare-wrap').hidden = !hasVariants();
+  $('#rd-orig-pane').hidden = mode === 'clean' || mode === 'compare';
+  $('#rd-clean-pane').hidden = mode === 'compare';
+  $('#rd-cmp-pane').hidden = mode !== 'compare';
 
   // Keep find pointed at whatever is on screen.
-  const target = hasClean ? '정리본' : '원본';
+  const target = mode === 'compare' ? '두 정리본'
+    : (hasClean ? '정리본' : '원본');
   $('#rd-find').placeholder = `${target}에서 찾기`;
   const q = $('#rd-find').value.trim();
   if (q) runFind(q); else $('#rd-hits').textContent = '';
+}
+
+/* One column per model output, so two 정리본 can sit side by side. Populated
+ * on load; applyMode only shows/hides the container. */
+function renderCompare(variants) {
+  const grid = $('#cmp-grid');
+  grid.textContent = '';
+  (variants || []).forEach((v, i) => {
+    const col = el('div', 'cmp-col');
+    const head = el('div', 'panehead');
+    head.append(el('h3', null, v.label || `버전 ${i + 1}`));
+    head.append(el('span', 'muted small',
+      `${commas(v.chars)}자${v.generated ? ' · ' + v.generated : ''}`));
+    head.append(el('span', 'spacer'));
+    const copy = el('button', 'ghost', '복사');
+    copy.addEventListener('click', () => writeClipboard(v.text));
+    head.append(copy);
+    col.append(head);
+    const body = el('article', 'reader markdown');
+    if (i < 2) body.id = i === 0 ? 'cmp-a-body' : 'cmp-b-body';
+    renderMarkdown(body, v.text);
+    col.append(body);
+    grid.append(col);
+  });
 }
 
 function paintReader(needle) {
@@ -918,16 +951,25 @@ function markWithin(root, needle) {
 }
 
 function runFind(needle) {
-  const onClean = !!S.clean?.exists;
-  let hits;
-  if (onClean) {
+  const mode = readerMode();
+  let hits, host;
+  if (mode === 'compare') {
+    const bodies = ['#cmp-a-body', '#cmp-b-body']
+      .map((s) => $(s)).filter(Boolean);
+    bodies.forEach((body, i) => {
+      renderMarkdown(body, S.clean?.variants?.[i]?.text || '');
+    });
+    hits = bodies.reduce((n, body) => n + markWithin(body, needle), 0);
+    host = bodies[0] || $('#rd-body');
+  } else if (S.clean?.exists) {
     const body = $('#cl-body');
     renderMarkdown(body, S.clean.text);      // reset, then mark
     hits = markWithin(body, needle);
+    host = body;
   } else {
     hits = paintReader(needle);
+    host = $('#rd-body');
   }
-  const host = onClean ? $('#cl-body') : $('#rd-body');
   $('#rd-hits').textContent = needle
     ? (hits ? `${hits}건 일치` : '일치 없음') : '';
   if (needle && hits) {
@@ -1106,11 +1148,14 @@ async function loadClean(vid) {
     empty.hidden = true;
     body.hidden = false;
     renderMarkdown(body, d.text);
+    const label = d.variants?.[0]?.label;
     $('#cl-meta').textContent =
-      `${commas(d.chars)}자 · ${d.prompt || 'cleanup'} · ${d.generated || ''}`;
+      `${commas(d.chars)}자 · ${label || d.prompt || 'cleanup'} · ${d.generated || ''}`;
     $('#cl-copy').hidden = false;
     $('#cl-drop').hidden = false;
+    renderCompare(d.variants);
   } else {
+    renderCompare([]);
     empty.hidden = false;
     body.hidden = true;
     body.textContent = '';
@@ -1642,7 +1687,16 @@ $('#cl-paste').addEventListener('click', () => {
   $('#cl-text').focus();
 });
 $('#cl-cancel').addEventListener('click', () => { $('#cl-pastebox').hidden = true; });
-$('#rd-orig').addEventListener('change', applyMode);
+$('#rd-orig').addEventListener('change', () => {
+  // '원본 함께 보기'와 '버전 비교'는 서로 배타적으로 둔다.
+  if ($('#rd-orig').checked) $('#rd-compare').checked = false;
+  applyMode();
+});
+$('#rd-compare').addEventListener('change', () => {
+  // 비교 모드에서는 '원본 함께 보기'가 의미 없으니 꺼 둔다.
+  if ($('#rd-compare').checked) $('#rd-orig').checked = false;
+  applyMode();
+});
 let findTimer;
 $('#rd-find').addEventListener('input', () => {
   clearTimeout(findTimer);
