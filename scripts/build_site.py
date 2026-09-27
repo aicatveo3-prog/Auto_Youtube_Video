@@ -112,17 +112,50 @@ def split_front_matter(text: str) -> tuple[dict, str]:
     return meta, body.lstrip("\n")
 
 
+def read_clean_variants(vid: str) -> list[dict]:
+    """Every 정리본 a video has, one per model.
+
+    clean.md is the original output; additional models are kept beside it as
+    clean.<key>.md (e.g. clean.deepseek-4.1.md). Each variant carries its own
+    label (front-matter `model`) so the reader can put two of them side by side.
+    """
+    d = TRANSCRIPTS / vid
+    if not d.is_dir():
+        return []
+    files = []
+    base = d / "clean.md"
+    if base.exists():
+        files.append(base)
+    for p in sorted(d.glob("clean.*.md")):
+        if p.name != "clean.md":
+            files.append(p)
+    out = []
+    for p in files:
+        meta, body = split_front_matter(p.read_text(encoding="utf-8"))
+        key = "base" if p.name == "clean.md" else p.stem[len("clean."):]
+        out.append({
+            "key": key,
+            "label": meta.get("model") or ("기존 정리본" if key == "base" else key),
+            "prompt": meta.get("prompt", ""),
+            "generated": meta.get("generated", ""),
+            "chars": len(body), "text": body,
+            "path": f"transcripts/{vid}/{p.name}",
+        })
+    return out
+
+
 def read_clean(vid: str) -> dict:
-    p = TRANSCRIPTS / vid / "clean.md"
-    if not p.exists():
+    variants = read_clean_variants(vid)
+    if not variants:
         return {"exists": False}
-    meta, body = split_front_matter(p.read_text(encoding="utf-8"))
+    base = variants[0]                       # clean.md, the original output
     return {
         "exists": True, "id": vid,
-        "prompt": meta.get("prompt", ""),
-        "generated": meta.get("generated", ""),
-        "chars": len(body), "text": body,
-        "path": f"transcripts/{vid}/clean.md",
+        "prompt": base["prompt"],
+        "generated": base["generated"],
+        "chars": base["chars"], "text": base["text"],
+        "path": base["path"],
+        "variants": variants,
     }
 
 

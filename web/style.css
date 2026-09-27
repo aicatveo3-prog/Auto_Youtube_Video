@@ -496,6 +496,17 @@ fieldset.tabs label { display: inline-flex; align-items: center; gap: var(--s1);
   padding: var(--s3) var(--s4);
 }
 .pane { min-width: 0; }
+
+/* 정리본 버전 비교: one column per model output, side by side. */
+.split[data-mode="compare"] { grid-template-columns: minmax(0, 1fr); }
+.cmp-pane { width: 100%; }
+.cmp-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: var(--s4); align-items: start;
+}
+.cmp-col { min-width: 0; }
+/* A visible seam so it reads as "two versions", not one wide document. */
+.cmp-col + .cmp-col .reader { border-left: 3px solid var(--line-soft); }
 .panehead {
   display: flex; align-items: center; gap: var(--s2);
   margin-bottom: var(--s2); padding-bottom: var(--s2);
@@ -843,6 +854,8 @@ body.modal-open { overflow: hidden; }
 /* ═══ responsive ════════════════════════════════════════════ */
 @media (max-width: 1080px) {
   .split[data-mode="both"] { grid-template-columns: 1fr; }
+  .cmp-grid { grid-template-columns: 1fr; }
+  .cmp-col + .cmp-col .reader { border-left: none; }
 }
 
 @media (max-width: 760px) {
