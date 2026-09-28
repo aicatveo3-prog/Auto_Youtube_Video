@@ -396,7 +396,7 @@ def clean_variants(vid: str) -> list[dict]:
         key = "base" if p.name == "clean.md" else p.stem[len("clean."):]
         out.append({
             "key": key,
-            "label": meta.get("model") or ("기존 정리본" if key == "base" else key),
+            "label": meta.get("model") or ("Opus 4.6" if key == "base" else key),
             "prompt": meta.get("prompt", ""),
             "generated": meta.get("generated", ""),
             "chars": len(body), "text": body,
@@ -514,6 +514,7 @@ def api_channel(key: str):
         v["local_lang"] = have.get(vid, {}).get("lang")
         v["local_date"] = have.get(vid, {}).get("date", "")
         v["clean"] = vid in cleaned
+        v["cleans"] = [x["label"] for x in clean_variants(vid)] if vid in cleaned else []
         v.setdefault("access", "public")
         v["fail"] = "" if v["local"] else fails.get(vid, {}).get("reason", "")
     return jsonify(blob)
@@ -771,6 +772,7 @@ def api_library():
             "words": m.get("words"),
             "duration": m.get("duration_sec"),
             "clean": vid in cleaned,
+            "cleans": [x["label"] for x in clean_variants(vid)] if vid in cleaned else [],
             "thumb": f"https://i.ytimg.com/vi/{vid}/mqdefault.jpg",
         })
     loose.sort(key=lambda v: -(v["words"] or 0))

@@ -412,6 +412,21 @@ async function loadLibrary() {
   d.loose.forEach((v) => ll.append(looseRow(v)));
 }
 
+/* Colored per-model badges for the list rows (e.g. Opus 4.6 / DeepSeek 4.1).
+ * Falls back to the plain "정리본" badge for pre-variant data. */
+function addCleanBadges(right, v) {
+  const labels = v.cleans;
+  if (labels && labels.length) {
+    labels.forEach((label, i) => {
+      const b = el('span', 'badge clean ver', label);
+      b.style.setProperty('--cmp-accent', CMP_ACCENTS[i % CMP_ACCENTS.length]);
+      right.append(b);
+    });
+  } else if (v.clean) {
+    right.append(el('span', 'badge clean', '정리본'));
+  }
+}
+
 function looseRow(v) {
   const card = el('div', 'card');
   card.append(el('div', 'pick'));
@@ -425,7 +440,7 @@ function looseRow(v) {
     `${v.channel || '채널 미확인'} · ${commas(v.words)}단어 · ${fmtDur(v.duration)}`));
   const right = el('div', 'right');
   right.append(el('span', 'badge local', '추출됨'));
-  if (v.clean) right.append(el('span', 'badge clean', '정리본'));
+  addCleanBadges(right, v);
   if (v.article) right.append(el('span', 'badge article', '읽을거리'));
   const acts = el('div', 'acts');
   acts.append(actionBtn('read', '읽기', `#/video/${v.id}`));
@@ -675,7 +690,7 @@ function videoRow(v) {
     right.append(el('span', 'badge local',
       v.local_words ? `${commas(v.local_words)}단어` : '추출됨'));
   }
-  if (v.clean) right.append(el('span', 'badge clean', '정리본'));
+  addCleanBadges(right, v);
   if (v.article) right.append(el('span', 'badge article', '읽을거리'));
 
   if (locked) {

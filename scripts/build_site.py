@@ -135,7 +135,7 @@ def read_clean_variants(vid: str) -> list[dict]:
         key = "base" if p.name == "clean.md" else p.stem[len("clean."):]
         out.append({
             "key": key,
-            "label": meta.get("model") or ("기존 정리본" if key == "base" else key),
+            "label": meta.get("model") or ("Opus 4.6" if key == "base" else key),
             "prompt": meta.get("prompt", ""),
             "generated": meta.get("generated", ""),
             "chars": len(body), "text": body,
@@ -157,6 +157,11 @@ def read_clean(vid: str) -> dict:
         "path": base["path"],
         "variants": variants,
     }
+
+
+def clean_labels(vid: str) -> list[str]:
+    """Just the model labels, for the list rows (e.g. ['Opus 4.6', 'DeepSeek 4.1'])."""
+    return [v["label"] for v in read_clean_variants(vid)]
 
 
 def _read_prompt_dir(directory: Path) -> list[dict]:
@@ -269,6 +274,7 @@ def build_library(blobs, have, cleaned, art_by_vid, metas) -> dict:
             "channel_id": m.get("channel_id") or "",
             "words": m.get("words"), "duration": m.get("duration_sec"),
             "clean": vid in cleaned,
+            "cleans": clean_labels(vid) if vid in cleaned else [],
             "article": vid in art_by_vid,
             "thumb": f"https://i.ytimg.com/vi/{vid}/mqdefault.jpg",
         })
@@ -297,6 +303,7 @@ def build_channel(key, blob, have, cleaned, art_by_vid, local) -> dict:
         v["local_lang"] = local.get(vid, {}).get("lang")
         v["local_date"] = local.get(vid, {}).get("date", "")
         v["clean"] = vid in cleaned
+        v["cleans"] = clean_labels(vid) if vid in cleaned else []
         v["article"] = vid in art_by_vid
         v.setdefault("access", "public")
         v["fail"] = ""
