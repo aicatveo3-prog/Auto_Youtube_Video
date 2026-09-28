@@ -1,6 +1,7 @@
 ---
 source: hLoMJEoqciY
 prompt: cleanup-지식한입
+model: Opus 4.6
 generated: 2026-09-14
 ---
 
