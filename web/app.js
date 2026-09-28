@@ -881,6 +881,7 @@ function applyMode() {
   $('#rd-orig-pane').hidden = !(mode === 'both' || mode === 'compare-orig' || mode === 'orig');
   $('#rd-clean-pane').hidden = mode === 'orig' || cmp;
   $('#rd-cmp-pane').hidden = !cmp;
+  paintSingleHeader();
 
   // Keep find pointed at whatever is on screen.
   const target = cmp ? '두 정리본' : (hasClean ? '정리본' : '원본');
@@ -898,12 +899,36 @@ function shownCleanText() {
   return S.clean.text || '';
 }
 
+function currentSingleIndex() {
+  if (!S.clean?.exists) return 0;
+  if (hasVariants() && S.variantView !== 'compare') return S.variantView;
+  return 0;
+}
+
+/* Tint the single column's header with the model badge, so a lone 정리본 still
+ * says which version it is. Falls back to the plain "정리본" title if unknown. */
+function paintSingleHeader() {
+  const badge = $('#cl-badge'), title = $('#cl-title');
+  const i = currentSingleIndex();
+  const v = S.clean?.exists ? S.clean.variants?.[i] : null;
+  if (v) {
+    badge.textContent = v.label || '정리본';
+    badge.style.setProperty('--cmp-accent', CMP_ACCENTS[i % CMP_ACCENTS.length]);
+    badge.hidden = false;
+    title.hidden = true;
+  } else {
+    badge.hidden = true;
+    title.hidden = false;
+  }
+}
+
 function renderSingleVariant(i) {
   const v = S.clean?.variants?.[i];
   if (!v) return;
   renderMarkdown($('#cl-body'), v.text);
   $('#cl-meta').textContent =
-    `${commas(v.chars)}자 · ${v.label}${v.generated ? ' · ' + v.generated : ''}`;
+    `${commas(v.chars)}자${v.generated ? ' · ' + v.generated : ''}`;
+  paintSingleHeader();
 }
 
 function markVariantSeg() {
@@ -1219,9 +1244,8 @@ async function loadClean(vid) {
     empty.hidden = true;
     body.hidden = false;
     renderMarkdown(body, d.text);
-    const label = d.variants?.[0]?.label;
     $('#cl-meta').textContent =
-      `${commas(d.chars)}자 · ${label || d.prompt || 'cleanup'} · ${d.generated || ''}`;
+      `${commas(d.chars)}자${d.generated ? ' · ' + d.generated : ''}`;
     $('#cl-copy').hidden = false;
     $('#cl-drop').hidden = false;
     S.variantView = 'compare';
