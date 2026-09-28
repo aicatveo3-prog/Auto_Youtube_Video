@@ -22,6 +22,7 @@ const S = {
   poll: null,
   reader: null,       // loaded transcript
   clean: null,        // loaded 정리본
+  variantView: 'compare', // 'compare' or a variant index when several exist
   article: null,      // loaded 읽을거리 slug
   articleDoc: null,   // loaded 읽을거리 full doc (for 전체 복사)
 };
@@ -775,6 +776,7 @@ async function loadReader(vid) {
   $('#rd-find').value = '';
   $('#rd-hits').textContent = '';
   $('#rd-orig').checked = false;
+  S.variantView = 'compare';
   paintReader('');
   await loadClean(d.id);          // sets S.clean, then applyMode uses it
 }
@@ -854,14 +856,18 @@ function hasVariants() {
 /*
  * Decide what the reader shows.
  *
- * A video with more than one 정리본 (e.g. Opus 4.6 and DeepSeek 4.1) opens as a
- * two-column comparison by default — the whole point is to read them together.
- * 원본 is then a checkbox away, and with no variants there is nothing to compare,
- * so the single 정리본 (or the 원본) takes the column as before.
+ * With several 정리본 the default is the two-column comparison. The variant bar
+ * lets you focus on one model at a time; 원본 is a checkbox away in every mode.
+ * With a single 정리본 there is nothing to compare, so it just owns the column.
  */
 function readerMode() {
   if (!S.clean?.exists) return 'orig';
-  if (hasVariants()) return $('#rd-orig').checked ? 'compare-orig' : 'compare';
+  if (hasVariants() && S.variantView !== 'compare') {
+    return $('#rd-orig').checked ? 'both' : 'clean';
+  }
+  if (hasVariants()) {
+    return $('#rd-orig').checked ? 'compare-orig' : 'compare';
+  }
   return $('#rd-orig').checked ? 'both' : 'clean';
 }
 
@@ -873,7 +879,7 @@ function applyMode() {
   $('#rd-split-wrap').dataset.mode = mode;
   $('#rd-orig-wrap').hidden = !hasClean;      // nothing to toggle without one
   $('#rd-orig-pane').hidden = !(mode === 'both' || mode === 'compare-orig' || mode === 'orig');
-  $('#rd-clean-pane').hidden = hasVariants() || mode === 'orig';
+  $('#rd-clean-pane').hidden = mode === 'orig' || cmp;
   $('#rd-cmp-pane').hidden = !cmp;
 
   // Keep find pointed at whatever is on screen.
@@ -881,6 +887,56 @@ function applyMode() {
   $('#rd-find').placeholder = `${target}에서 찾기`;
   const q = $('#rd-find').value.trim();
   if (q) runFind(q); else $('#rd-hits').textContent = '';
+}
+
+/* The 정리본 currently shown as a single column (the base, or the chosen variant). */
+function shownCleanText() {
+  if (!S.clean?.exists) return '';
+  if (hasVariants() && S.variantView !== 'compare') {
+    return S.clean.variants[S.variantView]?.text || '';
+  }
+  return S.clean.text || '';
+}
+
+function renderSingleVariant(i) {
+  const v = S.clean?.variants?.[i];
+  if (!v) return;
+  renderMarkdown($('#cl-body'), v.text);
+  $('#cl-meta').textContent =
+    `${commas(v.chars)}자 · ${v.label}${v.generated ? ' · ' + v.generated : ''}`;
+}
+
+function markVariantSeg() {
+  $$('#rd-variant-seg .segbtn').forEach((b) =>
+    b.classList.toggle('on', b.dataset.view === String(S.variantView)));
+}
+
+function selectVariant(view) {
+  S.variantView = view;
+  if (hasVariants() && view !== 'compare') renderSingleVariant(view);
+  markVariantSeg();
+  applyMode();
+}
+
+function buildVariantSeg(variants) {
+  const bar = $('#rd-variants'), seg = $('#rd-variant-seg');
+  seg.textContent = '';
+  const list = variants || [];
+  if (list.length < 2) { bar.hidden = true; return; }
+  bar.hidden = false;
+  const mk = (label, view, accent) => {
+    const b = el('button', 'segbtn', label);
+    b.type = 'button';
+    b.dataset.view = String(view);
+    b.setAttribute('role', 'tab');
+    if (accent) b.style.setProperty('--cmp-accent', accent);
+    b.addEventListener('click', () => selectVariant(view));
+    seg.append(b);
+  };
+  mk('비교', 'compare', '#5b6470');
+  list.forEach((v, i) =>
+    mk(v.label || `버전 ${i + 1}`, i, CMP_ACCENTS[i % CMP_ACCENTS.length]));
+  markVariantSeg();
 }
 
 /* One column per model output, shown together. A tint per model keeps the two
@@ -978,7 +1034,7 @@ function runFind(needle) {
     host = bodies[0] || $('#rd-body');
   } else if (S.clean?.exists) {
     const body = $('#cl-body');
-    renderMarkdown(body, S.clean.text);      // reset, then mark
+    renderMarkdown(body, shownCleanText());  // reset, then mark
     hits = markWithin(body, needle);
     host = body;
   } else {
@@ -1168,9 +1224,12 @@ async function loadClean(vid) {
       `${commas(d.chars)}자 · ${label || d.prompt || 'cleanup'} · ${d.generated || ''}`;
     $('#cl-copy').hidden = false;
     $('#cl-drop').hidden = false;
+    S.variantView = 'compare';
     renderCompare(d.variants);
+    buildVariantSeg(d.variants);
   } else {
     renderCompare([]);
+    buildVariantSeg([]);
     empty.hidden = false;
     body.hidden = true;
     body.textContent = '';
@@ -1693,7 +1752,7 @@ $('#ar-copy').addEventListener('click', () => {
   const text = `${head}\n\n${d.text || ''}`;
   writeClipboard(text, `글 전체 복사 · ${commas(text.length)}자`);
 });
-$('#cl-copy').addEventListener('click', () => writeClipboard(S.clean?.text));
+$('#cl-copy').addEventListener('click', () => writeClipboard(shownCleanText()));
 $('#cl-copyprompt').addEventListener('click', copyPromptAndText);
 $('#cl-drop').addEventListener('click', dropClean);
 $('#cl-save').addEventListener('click', saveClean);

@@ -531,6 +531,31 @@ fieldset.tabs label { display: inline-flex; align-items: center; gap: var(--s1);
   padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line-soft);
   z-index: 1;
 }
+/* 정리본 버전 전환 바: 비교(기본) / 개별 버전. */
+.variant-bar {
+  display: flex; align-items: center; gap: var(--s3);
+  margin: 0 0 var(--s4); flex-wrap: wrap;
+}
+.variant-label {
+  font-size: var(--t1); font-weight: 700; color: var(--faint);
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.seg {
+  display: inline-flex; padding: 3px; gap: 2px;
+  background: var(--raised); border-radius: 999px;
+}
+.segbtn {
+  appearance: none; border: 0; cursor: pointer;
+  padding: 5px 14px; border-radius: 999px;
+  font-size: var(--t2); font-weight: 600;
+  color: var(--faint); background: transparent;
+  transition: background .12s ease, color .12s ease;
+}
+.segbtn:hover { color: var(--fg); }
+.segbtn.on {
+  color: #fff; background: var(--cmp-accent, var(--fg));
+  box-shadow: var(--e1);
+}
 .panehead {
   display: flex; align-items: center; gap: var(--s2);
   margin-bottom: var(--s2); padding-bottom: var(--s2);
